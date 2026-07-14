@@ -7,7 +7,7 @@ import NavigationPanel from './components/NavigationPanel';
 const App = () => {
 
     const videoRef = useRef(null);
-        
+
     const [sections, setSections] = useState([])
     const [position, setPosition] = useState({
         section: 0,
@@ -29,11 +29,15 @@ const App = () => {
             const data = await getVideoStructure();
 
             setSections(data.sections);
-            
+
             setPosition({
                 section: 0,
                 clip: 0
             })
+
+            setIsTransitioning(false)
+            setPendingTransition(false)
+            
         } catch (error) {
             console.error(error)
         }
@@ -42,33 +46,44 @@ const App = () => {
     const currentSection = sections[position.section];
     const currentVideo = currentSection?.clips[position.clip]
 
+    const canGoPreviousSection = position.section > 0
+    const canGoNextSection = position.section < sections.length - 1
+    const canGoPreviousClip = position.clip > 0
+    const canGoNextClip = position.clip < currentSection?.clips.length - 1
+
     const nextClip = () => {
-        if(!currentSection) return;
+        if (!currentSection) return;
 
         if (position.clip < currentSection.clips.length - 1) {
-            setPosition(perv => ({
-                ...perv,
-                clip: perv.clip + 1
+            setPosition(prev => ({
+                ...prev,
+                clip: prev.clip + 1
             }));
+            return true;
         }
+        return false;
     }
 
     const previousClip = () => {
-        if (position.clip > 0){
+        if (position.clip > 0) {
             setPosition(prev => ({
                 ...prev,
-                clip: prev.clip -1
+                clip: prev.clip - 1
             }))
+            return true;
         }
+        return false;
     }
 
     const nextSection = () => {
-        if (position.section < sections.length -1) {
+        if (position.section < sections.length - 1) {
             setPosition(prev => ({
                 section: prev.section + 1,
                 clip: 0
             }))
+            return true;
         }
+        return false;
     }
 
     const previousSection = () => {
@@ -77,13 +92,31 @@ const App = () => {
                 section: prev.section - 1,
                 clip: 0
             }))
+            return true;
         }
+        return false;
+    }
+
+    const switchWithTransition = (callback) => {
+        setIsTransitioning(true)
+        setPendingTransition(true)
+
+        setTimeout(() => {
+            const changed = callback()
+
+            if (!changed) {
+                setIsTransitioning(false)
+                setPendingTransition(false)
+            }
+        }, 250);
+
+
     }
 
     const togglePlayPause = () => {
         if (!videoRef.current) return;
 
-        if (videoRef.current.paused){
+        if (videoRef.current.paused) {
             videoRef.current.play()
         } else {
             videoRef.current.pause()
@@ -114,19 +147,21 @@ const App = () => {
     const handleVideoEnded = () => {
         if (!currentSection) return;
 
-        setIsTransitioning(true)
-        setPendingTransition(true)
+        // setIsTransitioning(true)
+        // setPendingTransition(true)
 
-        setTimeout(() => {
-            const hasMoreClips = position.clip < currentSection.clips.length - 1;
+        const hasMoreClips = position.clip < currentSection.clips.length - 1;
+        const hasMoreSections = position.section < sections.length - 1
 
-            if (hasMoreClips) {
-                nextClip();
-            } else {
-                nextSection();
-            }
+        if (hasMoreClips) {
+            switchWithTransition(nextClip);
+        } else if (hasMoreSections) {
+            switchWithTransition(nextSection);
+        } else {
+            setIsTransitioning(false);
+            setPendingTransition(false)
+        }
 
-        }, 250);
     }
 
     const handleVideoLoaded = () => {
@@ -136,8 +171,14 @@ const App = () => {
         }
     }
 
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false)
+
     useEffect(() => {
         if (!videoRef.current) return;
+
+        setCurrentTime(0)
+        setDuration(0)
 
         videoRef.current.play().catch(() => { });
 
@@ -185,8 +226,8 @@ const App = () => {
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
                 onLoadedData={handleVideoLoaded}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
+                onPlay={handlePlay}
+                onPause={handlePause}
             />
 
             <VideoControls
@@ -198,11 +239,15 @@ const App = () => {
             />
 
             <NavigationPanel
-                onPrevSection={previousSection}
-                onPrevClip={previousClip}
-                onNextClip={nextClip}
-                onNextSection={nextSection}
+                onPrevSection={() => switchWithTransition(previousSection)}
+                onPrevClip={() => switchWithTransition(previousClip)}
+                onNextClip={() => switchWithTransition(nextClip)}
+                onNextSection={() => switchWithTransition(nextSection)}
                 onReload={loadVideoStructure}
+                canGoPreviousSection={canGoPreviousSection}
+                canGoNextClip={canGoNextClip}
+                canGoPreviousClip={canGoPreviousClip}
+                canGoNextSection={canGoNextSection}
             />
         </div>
     )

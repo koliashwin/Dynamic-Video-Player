@@ -5,7 +5,11 @@ const NavigationPanel = ({
     onPrevClip,
     onNextClip,
     onNextSection,
-    onReload
+    onReload,
+    canGoNextSection,
+    canGoPreviousSection,
+    canGoNextClip,
+    canGoPreviousClip
 }) => {
     return (
         <div
@@ -16,10 +20,10 @@ const NavigationPanel = ({
                 flexWrap: "wrap"
             }}
         >
-            <button onClick={onPrevSection}>Prev Section</button>
-            <button onClick={onPrevClip}>Prev Clip</button>
-            <button onClick={onNextClip}>Next Clip</button>
-            <button onClick={onNextSection}>Next Section</button>
+            <button onClick={onPrevSection} disabled={!canGoPreviousSection}>Prev Section</button>
+            <button onClick={onPrevClip} disabled={!canGoPreviousClip}>Prev Clip</button>
+            <button onClick={onNextClip} disabled={!canGoNextClip}>Next Clip</button>
+            <button onClick={onNextSection} disabled={!canGoNextSection}>Next Section</button>
             <button onClick={onReload}>reload Structure</button>
         </div>
     )
