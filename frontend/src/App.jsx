@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
+import './App.css'
 import { getVideoStructure } from './services/videoService';
 import VideoPlayer from './components/VideoPlayer';
 import VideoControls from './components/VideoControls';
 import NavigationPanel from './components/NavigationPanel';
+import ChoiceSection from './components/ChoiceSection';
 
 const App = () => {
 
@@ -19,6 +21,7 @@ const App = () => {
     const [duration, setDuration] = useState(0)
     const [isTransitioning, setIsTransitioning] = useState(false)
     const [pendingTransition, setPendingTransition] = useState(false)
+
 
     useEffect(() => {
         loadVideoStructure();
@@ -37,14 +40,14 @@ const App = () => {
 
             setIsTransitioning(false)
             setPendingTransition(false)
-            
+
         } catch (error) {
             console.error(error)
         }
     };
 
     const currentSection = sections[position.section];
-    const currentVideo = currentSection?.clips[position.clip]
+    const currentVideo = currentSection?.clips[position.clip]?.url
 
     const canGoPreviousSection = position.section > 0
     const canGoNextSection = position.section < sections.length - 1
@@ -73,6 +76,17 @@ const App = () => {
             return true;
         }
         return false;
+    }
+
+    const selectClip = (clipIndex) => {
+        if (clipIndex === position.clip)
+            return false;
+
+        setPosition(prev => ({
+            ...prev,
+            clip: clipIndex
+        }))
+        return true
     }
 
     const nextSection = () => {
@@ -153,13 +167,17 @@ const App = () => {
         const hasMoreClips = position.clip < currentSection.clips.length - 1;
         const hasMoreSections = position.section < sections.length - 1
 
-        if (hasMoreClips) {
-            switchWithTransition(nextClip);
-        } else if (hasMoreSections) {
+        if (currentSection.type === 'choice') {
             switchWithTransition(nextSection);
         } else {
-            setIsTransitioning(false);
-            setPendingTransition(false)
+            if (hasMoreClips) {
+                switchWithTransition(nextClip);
+            } else if (hasMoreSections) {
+                switchWithTransition(nextSection);
+            } else {
+                setIsTransitioning(false);
+                setPendingTransition(false)
+            }
         }
 
     }
@@ -199,6 +217,18 @@ const App = () => {
             }}
         >
             <h1>Dynamic Video Prototype</h1>
+
+            {
+                currentSection?.type === "choice" && (
+                    <ChoiceSection
+                        clips={currentSection.clips}
+                        selectedClip={position.clip}
+                        onSelectClip={(index) => switchWithTransition(
+                            () => selectClip(index)
+                        )}
+                    />
+                )
+            }
 
             <div>
                 <strong>Section:</strong>
