@@ -4,7 +4,11 @@ VIDEO_STRUCTURE = [
         'title': 'intro',
         'type': 'single',
         'clips': [
-            'intro.mp4'
+            {
+                'id': 'intor-main',
+                'title': 'Introduction',
+                'url': 'http://localhost:8000/videos/intro.mp4'
+            }
         ]
     },
     {
@@ -12,8 +16,16 @@ VIDEO_STRUCTURE = [
         'title': 'projects',
         'type': 'choice',
         'clips': [
-            'example1.mp4',
-            'example2.mp4'
+            {
+                'id': 'project-a',
+                'title': 'Project-A',
+                'url': 'http://localhost:8000/videos/example1.mp4'
+            },
+            {
+                'id': 'project-b',
+                'title': 'Project-B',
+                'url': 'http://localhost:8000/videos/example2.mp4'
+            }
         ]
     },
     {
@@ -21,7 +33,11 @@ VIDEO_STRUCTURE = [
         'title': 'outro',
         'type': 'single',
         'clips': [
-            'outro.mp4'
+            {
+                'id': 'outro-main',
+                'title': 'Outro',
+                'url': 'http://localhost:8000/videos/outro.mp4'
+            }
         ]
     },
     

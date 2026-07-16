@@ -11,10 +11,7 @@ def build_video_structure():
             'id': section['id'],
             'title': section['title'],
             'type': section['type'],
-            'clips': [
-                f"{BASE_VIDEO_URL}/{clip}"
-                for clip in section['clips']
-            ]
+            'clips': section['clips']
         })
     
     return sections
