@@ -5,6 +5,7 @@ import VideoPlayer from './components/VideoPlayer';
 import VideoControls from './components/VideoControls';
 import NavigationPanel from './components/NavigationPanel';
 import ChoiceSection from './components/ChoiceSection';
+import Timeline from './components/Timeline';
 
 const App = () => {
 
@@ -55,7 +56,7 @@ const App = () => {
     const canGoNextClip = position.clip < currentSection?.clips.length - 1
 
     const nextClip = () => {
-        if (!currentSection) return;
+        if (!currentSection) return false;
 
         if (position.clip < currentSection.clips.length - 1) {
             setPosition(prev => ({
@@ -109,6 +110,17 @@ const App = () => {
             return true;
         }
         return false;
+    }
+
+    const goToSection = (sectionIndex) => {
+        if (sectionIndex === position.section)
+            return false;
+
+        setPosition({
+            section: sectionIndex,
+            clip: 0
+        })
+        return true
     }
 
     const switchWithTransition = (callback) => {
@@ -218,6 +230,14 @@ const App = () => {
         >
             <h1>Dynamic Video Prototype</h1>
 
+            <Timeline
+                sections={sections}
+                currentSectionIndex={position.section}
+                onSectionSelect={(index) => switchWithTransition(
+                    () => goToSection(index)
+                )}
+            />
+
             {
                 currentSection?.type === "choice" && (
                     <ChoiceSection
@@ -230,7 +250,7 @@ const App = () => {
                 )
             }
 
-            <div>
+            {/* <div>
                 <strong>Section:</strong>
                 {" "}
                 {position.section + 1}
@@ -246,7 +266,7 @@ const App = () => {
                 {position.clip + 1}
                 /
                 {currentSection?.clips.length}
-            </div>
+            </div> */}
 
             <VideoPlayer
                 videoRef={videoRef}
