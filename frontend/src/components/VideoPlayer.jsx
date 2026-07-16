@@ -9,7 +9,8 @@ const VideoPlayer = ({
     onLoadedMetadata,
     onLoadedData,
     onPlay,
-    onPause
+    onPause,
+    clipKey
 }) => {
     return (
         <div
@@ -29,6 +30,7 @@ const VideoPlayer = ({
                     current prototype intentionally uses one video element rather than Media Source Extensions (MSE)
                 */}
             <video
+                key={clipKey}
                 ref={videoRef}
                 src={src}
                 width={800}

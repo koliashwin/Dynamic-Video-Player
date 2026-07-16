@@ -47,6 +47,8 @@ const App = () => {
         }
     };
 
+    const videoKey = `${position.section}-${position.clip}`
+
     const currentSection = sections[position.section];
     const currentVideo = currentSection?.clips[position.clip]?.url
 
@@ -90,40 +92,88 @@ const App = () => {
         return true
     }
 
+    const getRandomClipIndex = (section) => {
+        return Math.floor(
+            Math.random() * section.clips.length
+        )
+    }
+
     const nextSection = () => {
-        if (position.section < sections.length - 1) {
-            setPosition(prev => ({
-                section: prev.section + 1,
-                clip: 0
-            }))
-            return true;
+
+        if (position.section >= sections.length - 1) return false
+
+        const nextSectionIndex = position.section + 1;
+        const targetSection = sections[nextSectionIndex];
+        let clipIndex = 0;
+
+        if (targetSection.type === "random") {
+            clipIndex = getRandomClipIndex(targetSection)
         }
-        return false;
+
+        setPosition({
+            section: nextSectionIndex,
+            clip: clipIndex
+        })
+
+        return true
+
+        // if (position.section < sections.length - 1) {
+        //     setPosition(prev => ({
+        //         section: prev.section + 1,
+        //         clip: 0
+        //     }))
+        //     return true;
+        // }
+        // return false;
     }
 
     const previousSection = () => {
-        if (position.section > 0) {
-            setPosition(prev => ({
-                section: prev.section - 1,
-                clip: 0
-            }))
-            return true;
+        if (position.section <= 0) return false;
+
+        const prevSectionIndex = position.section - 1;
+        const targetSection = sections[prevSectionIndex]
+        let clipIndex = 0;
+
+        if (targetSection.type === "random") {
+            clipIndex = getRandomClipIndex(targetSection)
         }
-        return false;
+
+        setPosition({
+            section: prevSectionIndex,
+            clip: clipIndex
+        })
+        return true
+        // if (position.section > 0) {
+        //     setPosition(prev => ({
+        //         section: prev.section - 1,
+        //         clip: 0
+        //     }))
+        //     return true;
+        // }
+        // return false;
     }
 
     const goToSection = (sectionIndex) => {
         if (sectionIndex === position.section)
             return false;
 
+        const targetSection = sections[sectionIndex]
+        let clipIndex = 0
+
+        if (targetSection.type === "random") {
+            clipIndex = getRandomClipIndex(targetSection)
+        }
+
         setPosition({
             section: sectionIndex,
-            clip: 0
+            clip: clipIndex
         })
         return true
     }
 
     const switchWithTransition = (callback) => {
+        if (isTransitioning) return;
+
         setIsTransitioning(true)
         setPendingTransition(true)
 
@@ -136,6 +186,10 @@ const App = () => {
             }
         }, 250);
 
+        setTimeout(() => {
+            setIsTransitioning(false);
+            setPendingTransition(false);
+        }, 2000);
 
     }
 
@@ -195,6 +249,13 @@ const App = () => {
     }
 
     const handleVideoLoaded = () => {
+
+        setCurrentTime(0);
+
+        if (videoRef.current) {
+            videoRef.current.play().catch(() => { });
+        }
+
         if (pendingTransition) {
             setIsTransitioning(false);
             setPendingTransition(false);
@@ -204,15 +265,15 @@ const App = () => {
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false)
 
-    useEffect(() => {
-        if (!videoRef.current) return;
+    // useEffect(() => {
+    //     if (!videoRef.current) return;
 
-        setCurrentTime(0)
-        setDuration(0)
+    //     setCurrentTime(0)
+    //     setDuration(0)
 
-        videoRef.current.play().catch(() => { });
+    //     videoRef.current.play().catch(() => { });
 
-    }, [currentVideo]);
+    // }, [currentVideo]);
 
     if (sections.length === 0) {
         return <h2>Loading...</h2>;
@@ -269,6 +330,7 @@ const App = () => {
             </div> */}
 
             <VideoPlayer
+                clipKey={videoKey}
                 videoRef={videoRef}
                 src={currentVideo}
                 isTransitioning={isTransitioning}
