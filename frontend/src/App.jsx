@@ -6,6 +6,8 @@ import VideoControls from './components/VideoControls';
 import NavigationPanel from './components/NavigationPanel';
 import ChoiceSection from './components/ChoiceSection';
 import Timeline from './components/Timeline';
+import { getEstimatedElapsedDuration, getEstimatedTotalDuration } from './utils/timelineUtils';
+import GlobalProgress from './components/GlobalProgress';
 
 const App = () => {
 
@@ -51,6 +53,9 @@ const App = () => {
 
     const currentSection = sections[position.section];
     const currentVideo = currentSection?.clips[position.clip]?.url
+
+    const totalDuration = getEstimatedTotalDuration(sections, position)
+    const globalCurrentTime = getEstimatedElapsedDuration(sections, position, currentTime)
 
     const canGoPreviousSection = position.section > 0
     const canGoNextSection = position.section < sections.length - 1
@@ -328,6 +333,11 @@ const App = () => {
                 /
                 {currentSection?.clips.length}
             </div> */}
+
+            <GlobalProgress
+                currentTime={globalCurrentTime}
+                totalDuration={totalDuration}
+            />
 
             <VideoPlayer
                 clipKey={videoKey}
