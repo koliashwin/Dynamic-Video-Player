@@ -1,39 +1,43 @@
+import { Box, LinearProgress, Stack, Typography } from '@mui/material';
 import React from 'react'
+import { formatTimecode } from '../utils/formatTimecode';
 
 const GlobalProgress = ({
     currentTime,
     totalDuration
 }) => {
 
-    const percentage = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
+    const percentage = totalDuration > 0 ? Math.min(100, (currentTime / totalDuration) * 100) : 0;
 
     return (
-        <div
-            style={{width: '800px'}}
-        >
-            <div
-                style={{
-                    height: "10px",
-                    background: "#ddd",
-                    borderRadius: "10px",
-                    overflow: "hidden"
-                }}
-            >
-                <div
-                    style={{
-                        width: `${percentage}%`,
-                        height: "100%",
-                        background: "#1976d2",
-                        transition: "width 150ms linear"
+        <Box sx={{width: '100%'}}>
+            <Stack direction="row" sx={{ mb: 0.75, justifyContent: 'space-between' }}>
+                <Typography
+                    sx={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        letterSpacing: '0.1em',
+                        color: 'text.secondary'
                     }}
-                />
-            </div>
-            <div style={{ marginTop: "6px" }}>
-                {Math.floor(currentTime)}
-                {" / "}
-                {Math.floor(totalDuration)} sec
-            </div>
-        </div>
+                >
+                    PROGRAM TIME
+                </Typography>
+                <Typography
+                    sx={{
+                        fontFamily: '"IBM Plex Mono", monospace',
+                        fontSize: 12,
+                        color: 'text.secondary'
+                    }}
+                >
+                    {formatTimecode(currentTime)} / {formatTimecode(totalDuration)}
+                </Typography>
+            </Stack>
+            <LinearProgress
+                variant='determinate'
+                value={percentage}
+                sx={{height: 6}}
+            />
+        </Box>
     )
 }
 

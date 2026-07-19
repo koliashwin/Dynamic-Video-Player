@@ -1,4 +1,6 @@
 import React from 'react'
+import { Box } from '@mui/material'
+import TransitionOverlay from './TransitionOverlay'
 
 const VideoPlayer = ({
     videoRef,
@@ -13,27 +15,30 @@ const VideoPlayer = ({
     clipKey
 }) => {
     return (
-        <div
-            style={{
+        <Box
+            sx={{
                 position: "relative",
-                width: "800px",
-                height: "450px",
-                background: "black",
-                overflow: "hidden"
+                width: '100%',
+                aspectRatio: '16/9',
+                borderRadius: 2,
+                overflow: 'hidden',
+                backgroundColor: '#000',
+                border: '1px solid',
+                borderColor: 'divider',
+                boxShadow: '0 20px 60px -20px rgba(0,0,0,0.6)'
             }}
         >
             {/* 
                     single reusable video element
-
                     clips are swapped by changing src
-
                     current prototype intentionally uses one video element rather than Media Source Extensions (MSE)
                 */}
-            <video
+            <Box
+                component="video"
                 key={clipKey}
                 ref={videoRef}
                 src={src}
-                width={800}
+                // width={800}
                 controls={false}
                 onEnded={onEnded}
                 onTimeUpdate={onTimeUpdate}
@@ -41,33 +46,16 @@ const VideoPlayer = ({
                 onLoadedData={onLoadedData}
                 onPlay={onPlay}
                 onPause={onPause}
-                style={{
+                sx={{
                     width: "100%",
-                    // height: "100%",
-                    objectFit: "cover"
+                    height: "100%",
+                    objectFit: "cover",
+                    display: 'block'
                 }}
             />
 
-            {/* 
-                    Transition overlay, used to mask source swithcing.
-
-                    Future versions may replace this with:
-                    - fade animation
-                    - branded transition
-                    - loading indicator
-                    - section splash screen
-                */}
-            <div
-                style={{
-                    position: "absolute",
-                    inset: 0,
-                    background: "black",
-                    opacity: isTransitioning ? 1 : 0,
-                    pointerEvents: "none",
-                    transition: "opacity 250ms ease-in-out"
-                }}
-            />
-        </div>
+            <TransitionOverlay isTransitioning={isTransitioning} />
+        </Box>
     )
 }
 
