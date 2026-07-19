@@ -1,17 +1,30 @@
-from app.data.video_structure import VIDEO_STRUCTURE
+from sqlalchemy.orm import Session
+from app.models.video_clips import Section
 
+# base url should be fetch from .env
 BASE_VIDEO_URL = "http://localhost:8000/videos"
 
-def build_video_structure():
+def build_video_structure(db: Session):
     
-    sections = []
+    sections = db.query(Section).order_by(Section.order_index).all()
 
-    for section in VIDEO_STRUCTURE:
-        sections.append({
-            'id': section['id'],
-            'title': section['title'],
-            'type': section['type'],
-            'clips': section['clips']
+    result = []
+    for section in sections:
+        clips = [
+            {
+                'id': f"clip-{link.clip.id}",
+                'title': link.clip.title,
+                'url': f"{BASE_VIDEO_URL}/{link.clip.filename}",
+                'duration': link.clip.duration
+            }
+            for link in section.clip_links
+        ]
+
+        result.append({
+            'id': f"section-{section.id}",
+            'title': section.title,
+            'type': section.type,
+            'clips': clips
         })
     
-    return sections
+    return result
