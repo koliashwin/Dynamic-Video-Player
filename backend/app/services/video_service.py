@@ -1,15 +1,27 @@
 from sqlalchemy.orm import Session
-from app.models.video_clips import Section
+from app.models.video_clips import Flow
 
 # base url should be fetch from .env
 BASE_VIDEO_URL = "http://localhost:8000/videos"
 
-def build_video_structure(db: Session):
+def resolve_flow(db: Session, flow_id: int | None):
+    if flow_id is not None:
+        return db.get(Flow, flow_id)
     
-    sections = db.query(Section).order_by(Section.order_index).all()
+    return db.query(Flow).order_by(Flow.id).first()
 
+
+def build_video_structure(db: Session, flow_id: int | None = None):
+    
+    flow = resolve_flow(db, flow_id)
+
+    if not flow:
+        return []
+    
     result = []
-    for section in sections:
+    for flow_link in flow.section_links:
+        section = flow_link.section
+
         clips = [
             {
                 'id': f"clip-{link.clip.id}",

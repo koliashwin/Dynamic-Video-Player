@@ -10,17 +10,11 @@ router = APIRouter(prefix='/sections', tags=["sections"])
 
 @router.get("", response_model=list[SectionOut])
 def list_sections(db: Session = Depends(get_db)):
-    return db.query(Section).order_by(Section.order_index).all()
+    return db.query(Section).order_by(Section.id).all()
 
 @router.post("", response_model=SectionOut)
 def create_section(payload: SectionCreate, db: Session = Depends(get_db)):
-    order_index = payload.order_index
-
-    if order_index is None:
-        max_order = db.query(func.max(Section.order_index)).scalar()
-        order_index = (max_order if max_order is not None else -1) + 1
-    
-    section = Section(title=payload.title, type=payload.type, order_index=order_index)
+    section = Section(title=payload.title, type=payload.type)
     db.add(section)
     db.commit()
     db.refresh(section)

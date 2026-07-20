@@ -31,13 +31,17 @@ class Section(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     type = Column(Enum(SectionType), nullable=False, default=SectionType.single)
-    order_index = Column(Integer, nullable=False, default=0)
 
     clip_links = relationship(
         "SectionClip",
         back_populates='section', 
         cascade='all, delete-orphan',
         order_by='SectionClip.order_index'
+    )
+    flow_links = relationship(
+        "FlowSection",
+        back_populates='section',
+        cascade='all, delete-orphan'
     )
 
 class SectionClip(Base):
@@ -50,3 +54,30 @@ class SectionClip(Base):
 
     section = relationship("Section", back_populates="clip_links")
     clip = relationship("Clip", back_populates='section_links')
+
+
+class Flow(Base):
+    __tablename__ = 'flows'
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+
+    section_links = relationship(
+        "FlowSection",
+        back_populates='flow',
+        cascade='all, delete-orphan',
+        order_by='FlowSection.order_index'
+    )
+
+
+class FlowSection(Base):
+    __tablename__ = "flow_sections"
+
+    id = Column(Integer, primary_key=True, index=True)
+    flow_id = Column(Integer, ForeignKey('flows.id'), nullable=False)
+    section_id = Column(Integer, ForeignKey('sections.id'), nullable=False)
+    order_index = Column(Integer, nullable=False, default=0)
+
+    flow = relationship("Flow", back_populates="section_links")
+    section = relationship("Section", back_populates="flow_links")

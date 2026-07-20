@@ -15,7 +15,6 @@ class ClipOut(BaseModel):
 class SectionCreate(BaseModel):
     title: str
     type: SectionType = SectionType.single
-    order_index: Optional[int] = None
 
 
 class SectionOut(BaseModel):
@@ -24,9 +23,26 @@ class SectionOut(BaseModel):
     id: int
     title: str
     type: SectionType
-    order_index: int
 
 
 class AttachClipRequest(BaseModel):
     clip_id: int
+    order_index: Optional[int] = None
+
+
+class FlowCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+
+class FlowOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: Optional[str] = None
+
+
+class AttachSectionRequest(BaseModel):
+    section_id: int
     order_index: Optional[int] = None
