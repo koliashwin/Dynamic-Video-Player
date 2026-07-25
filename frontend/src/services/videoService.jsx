@@ -1,15 +1,8 @@
-const API_URL = "http://localhost:8000"
+import { apiRequest } from "./api";
 
-const getVideoStructure = async () => {
-    const response = await fetch(
-        `${API_URL}/videos`
-    );
-
-    if (!response.ok) {
-        throw new Error("failed to load videos");
-    }
-
-    return response.json();
+const getVideoStructure = async (flowId) => {
+    const query = flowId ? `?flow_id=${flowId}` : ''
+    return apiRequest(`/videos${query}`)
 }
 
 export {

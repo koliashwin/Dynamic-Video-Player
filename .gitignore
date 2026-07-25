@@ -25,3 +25,8 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# media files ───────────────────────────────────────────────────────
+*.mp4
+*.webm
+*.mov
