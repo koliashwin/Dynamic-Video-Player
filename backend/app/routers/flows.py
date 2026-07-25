@@ -46,6 +46,18 @@ def attach_section(flow_id: int, payload: AttachSectionRequest, db: Session = De
 
     return {'attached': True, 'flow_id': flow_id, 'section_id': section.id}
 
+@router.delete('/{flow_id}/sections/{link_id}')
+def detach_section(flow_id: int, link_id: int, db: Session = Depends(get_db)):
+    link = db.get(FlowSection, link_id)
+
+    if not link or link.flow_id != flow_id:
+        raise HTTPException(status_code=404, detail='Attachment not found')
+    
+    db.delete(link)
+    db.commit()
+
+    return {'detached': link_id, 'flow_id': flow_id}
+
 @router.delete('/{flow_id}')
 def delete_flow(flow_id: int, db: Session = Depends(get_db)):
     flow = db.get(Flow, flow_id)

@@ -47,6 +47,18 @@ def attach_clip(section_id: int, payload: AttachClipRequest, db: Session = Depen
 
     return {'attached': True, 'section_id': section_id, 'clip_id': clip.id}
 
+@router.delete('/{section_id}/clips/{link_id}')
+def detach_clip(section_id: int, link_id: int, db: Session = Depends(get_db)):
+    link = db.get(SectionClip, link_id)
+
+    if not link or link.section_id != section_id:
+        raise HTTPException(status_code=404, detail='Attachment not Found')
+    
+    db.delete(link)
+    db.commit()
+
+    return{'detached': link_id, 'section_id': section_id}
+
 @router.delete('/{section_id}')
 def delete_section(section_id: int, db: Session = Depends(get_db)):
     section = db.get(Section, section_id)
