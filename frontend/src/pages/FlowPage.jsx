@@ -192,10 +192,6 @@ const FlowPage = () => {
                 </Stack>
             </Box>
 
-            <Alert severity="info" variant="outlined" sx={{ borderColor: 'divider' }}>
-                The player loads the first flow created only for now 
-            </Alert>
-
             {error && (
                 <Alert severity="error" variant="outlined">
                     {error}

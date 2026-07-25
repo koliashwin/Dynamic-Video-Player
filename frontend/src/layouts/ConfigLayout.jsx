@@ -43,13 +43,13 @@ const ConfigLayout = () => {
                         borderRadius: 1.5,
                         border: '1px solid',
                         borderColor: 'divider',
-                        backgrouColor: 'rgba(255,255,255,0.05)',
+                        backgroundColor: 'rgba(255,255,255,0.05)',
                         px: 1
                     }}
                 >
                     <Tabs
                         value={activeTab}
-                        TabIndicatorProps={{ style: { backgrouColor: palette.filmAmber } }}
+                        TabIndicatorProps={{ style: { backgroundColor: palette.filmAmber } }}
                         sx={{ minHeight: 44 }}
                     >
                         {TABS.map((tab) => (

@@ -7,6 +7,7 @@ export const apiRequest = async (endpoint_path, options = {}) => {
         let detail = response.statusText
         try {
             const body = await response.json()
+            detail = body.detail || detail
         } catch {
             // fall back to statusText
         }

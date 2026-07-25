@@ -9,15 +9,17 @@ import { getEstimatedElapsedDuration, getEstimatedTotalDuration } from '../utils
 import GlobalProgress from '../components/GlobalProgress';
 import { Alert, Box, CircularProgress, Container, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { palette } from '../theme';
-import { TuneRounded } from '@mui/icons-material';
-import { Link as RouterLink } from 'react-router-dom';
+import { DynamicFeedRounded, TuneRounded } from '@mui/icons-material';
+import { Link as RouterLink, useParams } from 'react-router-dom';
 
 const VideoPage = () => {
 
+    const { flowId } = useParams();
     const videoRef = useRef(null);
     const leftColumnRef = useRef(null);
 
     const [sections, setSections] = useState([])
+    const [flowName, setFlowName] = useState(null)
     const [position, setPosition] = useState({
         section: 0,
         clip: 0
@@ -33,7 +35,7 @@ const VideoPage = () => {
 
     useEffect(() => {
         loadVideoStructure();
-    }, []);
+    }, [flowId]);
 
     useEffect(() => {
         if (!leftColumnRef.current) return;
@@ -51,9 +53,16 @@ const VideoPage = () => {
     const loadVideoStructure = async () => {
         try {
             setLoadError(null)
-            const data = await getVideoStructure();
+            setSections([])
+            const data = await getVideoStructure(flowId);
+
+            if (!data) {
+                setLoadError('That flow could not be found')
+                return
+            }
 
             setSections(data.sections);
+            setFlowName(data.flow?.name || null)
 
             setPosition({
                 section: 0,
@@ -311,19 +320,31 @@ const VideoPage = () => {
                             Dynamic Video Player
                         </Typography>
                         <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>
-                            A branching video with dynamic navigation system
+                            {flowName
+                                ? `Playing: ${flowName}`
+                                : 'A branching video with dynamic navigation system'}
                         </Typography>
                     </Stack>
-                    <Tooltip title='Configuration panel'>
-                        <IconButton
-                            component={RouterLink}
-                            to='/config/clips'
-                            size='small'
-                            sx={{ position: 'absolute', right: 0, top: 0 }}
-                        >
-                            <TuneRounded fontSize='small' />
-                        </IconButton>
-                    </Tooltip>
+                    <Stack direction="row" spacing={0.5} sx={{ position: 'absolute', right: 0, top: 0 }}>
+                        <Tooltip title='Browse flows'>
+                            <IconButton
+                                component={RouterLink}
+                                to='/feed'
+                                size='small'
+                            >
+                                <DynamicFeedRounded fontSize='small' />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title='Configuration panel'>
+                            <IconButton
+                                component={RouterLink}
+                                to='/config/clips'
+                                size='small'
+                            >
+                                <TuneRounded fontSize='small' />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
                 </Box>
 
                 <Stack
