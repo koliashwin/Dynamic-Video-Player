@@ -39,4 +39,7 @@ def build_video_structure(db: Session, flow_id: int | None = None):
             'clips': clips
         })
     
-    return result
+    return {
+        'flow': {'id': flow.id, 'name': flow.name},
+        'sections': result
+    }

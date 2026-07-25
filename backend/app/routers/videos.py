@@ -18,6 +18,4 @@ def get_videos(
             status_code=404,
             detail="No flows found. check the backend or created one vid POST /flows"
         )
-    return {
-        "sections": build_video_structure(db, flow.id)
-    }
+    return build_video_structure(db, flow.id)
