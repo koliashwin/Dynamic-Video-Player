@@ -26,6 +26,12 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+if os.getenv("STORAGE_BACKEND", 'local').lower() == 'local':
+    from fastapi.staticfiles import StaticFiles
+    from app.services.storage.local_storage import LOCAL_VIDEOS_DIR
+
+    app.mount("/videos", StaticFiles(directory=LOCAL_VIDEOS_DIR), name="videos")
+
 app.include_router(video_router)
 app.include_router(clip_router)
 app.include_router(section_router)

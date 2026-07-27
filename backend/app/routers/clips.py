@@ -2,6 +2,7 @@ import os
 import shutil
 import uuid
 import tempfile
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
@@ -32,8 +33,9 @@ async def upload_clip(
             status_code=400,
             detail=f"Unsupported file type. use one of: {', '.join(ALLOWED_EXTENSIONS)}"
         )
-    
-    safe_filename = f"{uuid.uuid4().hex}_{file.filename}"
+
+    extension = Path(file.filename).suffix.lower()
+    safe_filename = f"{uuid.uuid4().hex}{extension}"
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         destination = os.path.join(tmp_dir, safe_filename)
