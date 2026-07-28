@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.models.video_clips import Clip
 from app.schemas.video_clip import ClipOut
-from app.services.media_utils import get_video_duration
+from app.services.media_utils import get_video_duration, ensure_faststart
 from app.services.storage import upload_file, delete_file
 
 router = APIRouter(prefix='/clips', tags=['clips'])
@@ -52,6 +52,7 @@ async def upload_clip(
             )
 
         try:
+            ensure_faststart(destination)
             upload_file(destination, safe_filename)
         except Exception as error:
             raise HTTPException(

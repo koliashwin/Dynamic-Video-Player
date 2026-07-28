@@ -1,3 +1,4 @@
+import os
 import json
 import shutil
 import subprocess
@@ -25,6 +26,27 @@ def get_video_duration(filepath: str) -> float:
         text=True,
         check=True
     )
-
+    if result.returncode != 0:
+            raise RuntimeError(f"ffprobe failed to fetch duration: {result.stderr[-500:]}")
+    
     data = json.loads(result.stdout)
     return round(float(data['format']['duration']),2)
+
+def ensure_faststart(path: str) -> None:
+    remuxed = f"{path}.faststart.mp4"
+    result = subprocess.run(
+        [
+            'ffmpeg',
+            '-y', '-i', 
+            path, '-c', 'copy',
+            '-movflags', '+faststart', 
+            remuxed
+        ],
+        check=True,
+        text=True,
+        capture_output=True
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg faststart remux failed: {result.stderr[-500:]}")
+
+    os.replace(remuxed, path)
