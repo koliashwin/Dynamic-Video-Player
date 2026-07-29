@@ -2,16 +2,32 @@ import os
 import json
 import shutil
 import subprocess
+import sys
+import platform
+
+IS_FROZEN = getattr(sys, "frozen", False)
+IS_WINDOWS = platform.system() == "Windows"
+
+def binary_name(name:str) -> str:
+     return f"{name}.exe" if IS_WINDOWS else name
+
+def binary_path(name: str) -> str:
+    if IS_FROZEN:
+         return os.path.join(os.path.dirname(sys.executable), binary_name(name))
+    return name
 
 def ffprobe_available() -> bool:
-    return shutil.which("ffprobe") is not None
+    path = binary_name('ffprobe')
+    if IS_FROZEN:
+         return os.path.isfile(path)
+    return shutil.which(path) is not None
 
 def get_video_duration(filepath: str) -> float:
 
     if not ffprobe_available():
         raise RuntimeError(
-            "ffprobe not found on PATH. Install ffmpeg to enable "
-            "automatic clip duration detection."
+            "ffprobe not found. Install ffmpeg and ensure it's on PATH "
+            "or bundled next to the app (.exe file), for the offline build."
         )
     
     result = subprocess.run(
