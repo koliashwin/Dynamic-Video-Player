@@ -1,12 +1,15 @@
-from typing import Optional
+from typing import Optional, Annotated
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, BeforeValidator
 from app.models.video_clips import SectionType
+
+# serialize ID (mendatory for cockroachdb)
+IdStr = Annotated[str, BeforeValidator(str)]
 
 class ClipOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: IdStr
     title: str
     filename: str
     duration: float
@@ -15,7 +18,7 @@ class ClipOut(BaseModel):
 class SectionClipOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: IdStr
     order_index: int
     clip: ClipOut
 
@@ -28,7 +31,7 @@ class SectionCreate(BaseModel):
 class SectionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: IdStr
     title: str
     type: SectionType
     clip_links: list[SectionClipOut] = []
@@ -47,7 +50,7 @@ class FlowCreate(BaseModel):
 class FlowSectionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: IdStr
     order_index: int
     section: SectionOut
 
@@ -55,7 +58,7 @@ class FlowSectionOut(BaseModel):
 class FlowOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: IdStr
     name: str
     description: Optional[str] = None
     section_links: list[FlowSectionOut] = []

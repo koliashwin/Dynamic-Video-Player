@@ -1,6 +1,8 @@
 import os
 import shutil
 import uuid
+import tempfile
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
@@ -8,15 +10,10 @@ from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.models.video_clips import Clip
 from app.schemas.video_clip import ClipOut
-from app.services.media_utils import get_video_duration
+from app.services.media_utils import get_video_duration, ensure_faststart
+from app.services.storage import upload_file, delete_file
 
 router = APIRouter(prefix='/clips', tags=['clips'])
-
-# backend/app/routers/clips.py -> up three levels -> backend/videos
-VIDEOS_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "videos",
-)
 
 ALLOWED_EXTENSIONS = (".mp4", ".mov", ".webm")
 
@@ -36,23 +33,32 @@ async def upload_clip(
             status_code=400,
             detail=f"Unsupported file type. use one of: {', '.join(ALLOWED_EXTENSIONS)}"
         )
-    
-    os.makedirs(VIDEOS_DIR, exist_ok=True)
 
-    safe_filename = f"{uuid.uuid4().hex}_{file.filename}"
-    destination = os.path.join(VIDEOS_DIR, safe_filename)
+    extension = Path(file.filename).suffix.lower()
+    safe_filename = f"{uuid.uuid4().hex}{extension}"
 
-    with open(destination, 'wb') as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    try:
-        duration = get_video_duration(destination)
-    except Exception as error:
-        os.remove(destination)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Could not read video duration: {error}"
-        )
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        destination = os.path.join(tmp_dir, safe_filename)
+
+        with open(destination, 'wb') as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        try:
+            duration = get_video_duration(destination)
+        except Exception as error:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Could not read video duration: {error}"
+            )
+
+        try:
+            ensure_faststart(destination)
+            upload_file(destination, safe_filename)
+        except Exception as error:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Could not upload clip to storage: {error}"
+            )
     
     clip = Clip(title=title, filename=safe_filename, duration=duration)
     db.add(clip)
@@ -67,10 +73,8 @@ def delete_clip(clip_id: int, db: Session = Depends(get_db)):
 
     if not clip:
         raise HTTPException(status_code=404, detail="Clip not found")
-    
-    filepath = os.path.join(VIDEOS_DIR, clip.filename)
-    if os.path.exists(filepath):
-        os.remove(filepath)
+
+    delete_file(clip.filename)
     
     db.delete(clip)
     db.commit()

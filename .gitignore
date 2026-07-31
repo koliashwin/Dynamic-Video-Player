@@ -30,3 +30,10 @@ Thumbs.db
 *.mp4
 *.webm
 *.mov
+
+# PyInstaller ───────────────────────────────────────────────────────
+backend/build/
+backend/dist/
+
+# Generated executables ───────────────────────────────────────────────────────
+*.exe

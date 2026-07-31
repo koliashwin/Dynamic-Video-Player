@@ -1,4 +1,4 @@
-export const API_URL = "http://localhost:8000"
+export const API_URL = import.meta.env.VITE_BACKEND_URL
 
 export const apiRequest = async (endpoint_path, options = {}) => {
     const response = await fetch(`${API_URL}${endpoint_path}`, options)
