@@ -32,3 +32,24 @@ if __name__ == "__main__":
     import uvicorn
     threading.Timer(1.5, lambda: webbrowser.open("http://localhost:8000")).start()
     uvicorn.run(app=app, host="127.0.0.1", port=8000)
+
+# steps to build standalon version
+# Step 1:
+#       create build for frontend with command: "npm run build"
+
+# Step 2:
+#       copy frontend build in dedicated folder(frontend_dist/) this folder has to be in same root dir as offline_main.py file
+
+# Step 3:
+#       if build/ & dist/ folder exists then delete them with following command
+#       "rmdir /s /q build dist"
+
+# Step 4:
+#       run following command in terminal/cmd it will create the folder containing .exe file with relevent internal depenancies
+#       "python -m PyInstaller --onedir --add-data "frontend_dist;frontend_dist" offline_main.py"
+
+# Step 5:
+#       navigate into backend/dist/offline_main/ and create bin/ folder inside it & copy the ffprobe.exe and ffmpeg.exe into that folder.
+
+# Step 6:
+#       inside ackend/dist/offline_main/ double click on offline_main.exe file and test application

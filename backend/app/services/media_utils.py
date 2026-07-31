@@ -13,11 +13,11 @@ def binary_name(name:str) -> str:
 
 def binary_path(name: str) -> str:
     if IS_FROZEN:
-         return os.path.join(os.path.dirname(sys.executable), binary_name(name))
+        return os.path.join(os.path.dirname(sys.executable), "bin", binary_name(name))
     return name
 
 def ffprobe_available() -> bool:
-    path = binary_name('ffprobe')
+    path = binary_path('ffprobe')
     if IS_FROZEN:
          return os.path.isfile(path)
     return shutil.which(path) is not None
@@ -27,12 +27,12 @@ def get_video_duration(filepath: str) -> float:
     if not ffprobe_available():
         raise RuntimeError(
             "ffprobe not found. Install ffmpeg and ensure it's on PATH "
-            "or bundled next to the app (.exe file), for the offline build."
+            "or bundled in bin/ next to the app (.exe file), for the offline build."
         )
     
     result = subprocess.run(
         [
-            'ffprobe',
+            binary_path('ffprobe'),
             '-v', 'error',
             '-show_entries', 'format=duration',
             '-of', 'json',
@@ -52,7 +52,7 @@ def ensure_faststart(path: str) -> None:
     remuxed = f"{path}.faststart.mp4"
     result = subprocess.run(
         [
-            'ffmpeg',
+            binary_path('ffmpeg'),
             '-y', '-i', 
             path, '-c', 'copy',
             '-movflags', '+faststart', 
