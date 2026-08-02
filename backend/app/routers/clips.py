@@ -68,11 +68,30 @@ async def upload_clip(
     return clip
 
 @router.delete('/{clip_id}')
-def delete_clip(clip_id: int, db: Session = Depends(get_db)):
+def delete_clip(clip_id: int, force: bool = False, db: Session = Depends(get_db)):
     clip = db.get(Clip, clip_id)
 
     if not clip:
         raise HTTPException(status_code=404, detail="Clip not found")
+
+    if not force:
+        affected_flows_by_section = {}
+        for section_link in clip.section_links:
+            section = section_link.section
+            if len(section.clip_links) <= 1:    # last clip in section
+                flow_names = [flow_link.flow.name for flow_link in section.flow_links]
+                if flow_names:
+                    affected_flows_by_section[section.title] = flow_names
+
+        if affected_flows_by_section:
+            parts = [
+                f"'{section_title}' (used by: {', '.join(flow_names)})"
+                for section_title, flow_names in affected_flows_by_section.items()
+            ]
+            raise HTTPException(
+                status_code=409,
+                detail=f"Deleting this clip will empty: {'; '.join(parts)}"
+            )
 
     delete_file(clip.filename)
     

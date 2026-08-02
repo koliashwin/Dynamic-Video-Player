@@ -18,4 +18,19 @@ def get_videos(
             status_code=404,
             detail="No flows found. check the backend or created one vid POST /flows"
         )
+
+    if not flow.section_links:
+        raise HTTPException(
+            status_code=422,
+            detail=f"'{flow.name}' has no sections attached yet. add at least one before playing it"
+        )
+
+    empty_sections = [
+        link.section.title for link in flow.section_links if not link.section.clip_links
+    ]
+    if empty_sections:
+        raise HTTPException(
+            status_code=422,
+            detail=f"'{flow.name}' has no section(s) with no clips: {', '.join(empty_sections)}. add clips or remove them form flow"
+        )
     return build_video_structure(db, flow.id)
