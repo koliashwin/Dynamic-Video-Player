@@ -12,6 +12,7 @@ const VideoPlayer = ({
     onLoadedData,
     onPlay,
     onPause,
+    onError,
     clipKey
 }) => {
     return (
@@ -46,6 +47,7 @@ const VideoPlayer = ({
                 onLoadedData={onLoadedData}
                 onPlay={onPlay}
                 onPause={onPause}
+                onError={onError}
                 sx={{
                     width: "100%",
                     height: "100%",

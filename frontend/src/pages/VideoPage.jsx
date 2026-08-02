@@ -32,6 +32,14 @@ const VideoPage = () => {
     const [pendingTransition, setPendingTransition] = useState(false)
     const [loadError, setLoadError] = useState(null)
     const [leftColumnHeight, setLeftColumnHeight] = useState(null)
+    const transitionFailsafeRef = useRef(null)
+
+    const clearTransitionFailsafe = () => {
+        if (transitionFailsafeRef.current) {
+            clearTimeout(transitionFailsafeRef.current)
+            transitionFailsafeRef.current = null
+        }
+    }
 
     useEffect(() => {
         loadVideoStructure();
@@ -71,6 +79,7 @@ const VideoPage = () => {
 
             setIsTransitioning(false)
             setPendingTransition(false)
+            clearTransitionFailsafe()
 
         } catch (error) {
             console.error(error)
@@ -202,13 +211,15 @@ const VideoPage = () => {
             if (!changed) {
                 setIsTransitioning(false)
                 setPendingTransition(false)
+                clearTransitionFailsafe()
             }
         }, 250);
 
-        setTimeout(() => {
+        clearTransitionFailsafe()
+        transitionFailsafeRef.current = setTimeout(() => {
             setIsTransitioning(false);
             setPendingTransition(false);
-        }, 2000);
+        }, 8000);
 
     }
 
@@ -272,9 +283,17 @@ const VideoPage = () => {
         }
 
         if (pendingTransition) {
+            clearTransitionFailsafe();
             setIsTransitioning(false);
             setPendingTransition(false);
         }
+    }
+
+    const handleVideoError = () => {
+        clearTransitionFailsafe()
+        setIsTransitioning(false)
+        setPendingTransition(false)
+        console.error("Clip failed to load: ", currentVideo)
     }
 
     const handlePlay = () => setIsPlaying(true);
@@ -286,7 +305,7 @@ const VideoPage = () => {
                 <Alert severity='error' variant='outlined'>
                     {loadError}
                 </Alert>
-            </Container>
+            </Container> 
         )
     }
 
@@ -365,6 +384,7 @@ const VideoPage = () => {
                             onLoadedData={handleVideoLoaded}
                             onPlay={handlePlay}
                             onPause={handlePause}
+                            onError={handleVideoError}
                         />
 
                         <VideoControls

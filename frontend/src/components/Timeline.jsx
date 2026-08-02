@@ -122,16 +122,18 @@ const Timeline = ({
                                         </Typography>
                                     )}
 
-                                    {isActive && isChoice && (
-                                        <ChoiceSection
-                                            clips={section.clips}
-                                            onSelectClip={onSelectClip}
-                                            selectedClip={selectedClip}
-                                        />
-                                    )}
                                 </Stack>
                             </ButtonBase>
 
+                            {isActive && isChoice && (
+                                <Box sx={{ mt: 0.75 }}>
+                                    <ChoiceSection
+                                        clips={section.clips}
+                                        onSelectClip={onSelectClip}
+                                        selectedClip={selectedClip}
+                                    />
+                                </Box>
+                            )}
 
                         </Box>
                     )
