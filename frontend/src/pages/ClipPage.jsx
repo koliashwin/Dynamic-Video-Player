@@ -61,7 +61,19 @@ const ClipPage = () => {
             await deleteClip(clipId)
             setClips((prev) => prev.filter((clip) => clip.id !== clipId))
         } catch (error) {
-            setError(error.message || "could not delet the clip")
+            if (error.status === 409) {
+                const confirmed = window.confirm(`${error.message}\n\nDelete anyway?`)
+                if (confirmed) {
+                    try {
+                        await deleteClip(clipId, true)
+                        setClips((prev) => prev.filter((clip) => clip.id !== clipId))
+                    } catch (retryError) {
+                        setError(retryError.message || "could not delete the clip")
+                    }
+                }
+            } else {
+                setError(error.message || "could not delet the clip")
+            }
         } finally {
             setDeletingId(null)
         }

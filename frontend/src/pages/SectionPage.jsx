@@ -138,7 +138,19 @@ const SectionPage = () => {
             await detachClipFromSection(section.id, linkId)
             await load()
         } catch (error) {
-            setError(error.message || 'could not detach clip')
+            if (error.status === 409) {
+                const confirmed = window.confirm(`${error.message}\n\nRemove anyway?`)
+                if (confirmed) {
+                    try {
+                        await detachClipFromSection(section.id, linkId, true)
+                        await load()
+                    } catch (retryError) {
+                        setError(retryError.message || 'could not detach clip')
+                    }
+                }
+            } else {
+                setError(error.message || 'could not detach clip')
+            }
         } finally {
             setBusyLinkId(null)
         }
@@ -150,7 +162,19 @@ const SectionPage = () => {
             await deleteSection(sectionId)
             setSections((prev) => prev.filter((section) => section.id !== sectionId))
         } catch (error) {
-            setError(error.message || 'Could not delete section')
+            if (error.status === 409) {
+                const confirmed = window.confirm(`${error.message}\n\nDelete anyway?`)
+                if (confirmed){
+                    try {
+                        await deleteSection(sectionId, true)
+                        setSections((prev) => prev.filter((section) => section.id !== sectionId))
+                    } catch (retryError) {
+                        setError(retryError.message || 'could not delete section')
+                    }
+                }
+            } else {
+                setError(error.message || 'Could not delete section')
+            }
         } finally {
             setDeletingId(null)
         }

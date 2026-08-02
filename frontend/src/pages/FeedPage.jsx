@@ -99,7 +99,13 @@ const FeedPage = () => {
                         {flows.map((flow) => {
                             const duration = estimateFlowDuration(flow)
                             const hasBranch = flow.section_links.some((link) => link.section.type === 'choice')
-                            const isEmpty = flow.section_links.length === 0
+                            const emptySections = flow.section_links.filter((link) => link.section.clip_links.length === 0)
+                            const isEmpty = flow.section_links.length === 0 || emptySections.length > 0
+                            const disabledReason = flow.section_links.length === 0
+                                ? "This flow has no sections yet"
+                                : emptySections.length > 0
+                                    ? `${emptySections.length} section${emptySections.length === 1 ? '' : 's'} still need clips: ${emptySections.map((link) => link.section.title).join(', ')}`
+                                    : null
 
                             return (
                                 <Stack
@@ -179,17 +185,22 @@ const FeedPage = () => {
                                             )}
                                         </Stack>
 
-                                        <Button
-                                            component={RouterLink}
-                                            to={`/flow/${flow.id}`}
-                                            size='small'
-                                            variant='contained'
-                                            disabled={isEmpty}
-                                            startIcon={<PlayArrowRounded fontSize='small' />}
-                                            sx={{ backgroundColor: palette.filmAmber, whiteSpace: 'nowrap' }}
-                                        >
-                                            Play
-                                        </Button>
+                                        <Tooltip title={disabledReason || ''} disableHoverListener={!isEmpty}>
+                                            <span>
+                                                <Button
+                                                    component={RouterLink}
+                                                    to={`/flow/${flow.id}`}
+                                                    size='small'
+                                                    variant='contained'
+                                                    disabled={isEmpty}
+                                                    startIcon={<PlayArrowRounded fontSize='small' />}
+                                                    sx={{ backgroundColor: palette.filmAmber, whiteSpace: 'nowrap' }}
+                                                >
+                                                    Play
+                                                </Button>
+                                            </span>
+                                        </Tooltip>
+
                                     </Stack>
                                 </Stack>
                             )

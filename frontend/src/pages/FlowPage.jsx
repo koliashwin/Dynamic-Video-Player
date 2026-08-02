@@ -52,11 +52,14 @@ const AttachSectionRow = ({ flow, sections, onAttached }) => {
                     label="Add section"
                     sx={{ minWidth: 220 }}
                 >
-                    {availableSections.map((section) => (
-                        <MenuItem key={section.id} value={section.id}>
-                            {section.title}
-                        </MenuItem>
-                    ))}
+                    {availableSections.map((section) => {
+                        const isSectionEmpty = section.clip_links.length === 0
+                        return (
+                            <MenuItem key={section.id} value={section.id} disabled={isSectionEmpty}>
+                                {section.title}{isSectionEmpty ? " (no clips yet)" : ""}
+                            </MenuItem>
+                        )
+                    })}
                 </TextField>
                 <Button
                     size="small"
@@ -129,8 +132,21 @@ const FlowPage = () => {
         try {
             setBusyLinkId(linkId)
             await detachSectionFromFlow(flow.id, linkId)
+            await load()
         } catch (error) {
-            setError(error.message || 'could not detach section')
+            if (error.status === 409) {
+                const confirmed = window.confirm(`${error.message}\n\nRemove anyway?`)
+                if (confirmed) {
+                    try {
+                        await detachSectionFromFlow(flow.id, linkId, true)
+                        await load()
+                    } catch (retryError) {
+                        setError(retryError.message || "could not detach section")
+                    }
+                }
+            } else {
+                setError(error.message || 'could not detach section')
+            }
         } finally {
             setBusyLinkId(null)
         }

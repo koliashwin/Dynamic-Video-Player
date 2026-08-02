@@ -83,7 +83,7 @@ const VideoPage = () => {
 
         } catch (error) {
             console.error(error)
-            setLoadError('could not reach the video service - either backend is down or flow is not created')
+            setLoadError(error.message || 'could not reach the video service - either backend is down or flow is not created')
         }
     };
 
