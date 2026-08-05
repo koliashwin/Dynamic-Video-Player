@@ -5,7 +5,7 @@ import VideoControls from '../components/VideoControls';
 import NavigationPanel from '../components/NavigationPanel';
 import ChoiceSection from '../components/ChoiceSection';
 import Timeline from '../components/Timeline';
-import { getEstimatedElapsedDuration, getEstimatedTotalDuration } from '../utils/timelineUtils';
+import { getBaselineTotalDuration, getEstimatedElapsedDuration, getPaceDelta } from '../utils/timelineUtils';
 import GlobalProgress from '../components/GlobalProgress';
 import { Alert, Box, CircularProgress, Container, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { palette } from '../theme';
@@ -32,6 +32,8 @@ const VideoPage = () => {
     const [pendingTransition, setPendingTransition] = useState(false)
     const [loadError, setLoadError] = useState(null)
     const [leftColumnHeight, setLeftColumnHeight] = useState(null)
+    const [visitedClipBySection, setVisitedClipBySection] = useState({})
+    const [estimatedTotal, setEstimatedTotal] = useState(0)
     const transitionFailsafeRef = useRef(null)
 
     const clearTransitionFailsafe = () => {
@@ -44,6 +46,14 @@ const VideoPage = () => {
     useEffect(() => {
         loadVideoStructure();
     }, [flowId]);
+
+    useEffect(() => {
+        setVisitedClipBySection(prev => {
+            const existing = prev[position.section] || [];
+            if (existing.includes(position.clip)) return prev;
+            return { ...prev, [position.section]: [...existing, position.clip]};
+        })
+    }, [position.section, position.clip])
 
     useEffect(() => {
         if (!leftColumnRef.current) return;
@@ -71,11 +81,13 @@ const VideoPage = () => {
 
             setSections(data.sections);
             setFlowName(data.flow?.name || null)
+            setEstimatedTotal(getBaselineTotalDuration(data.sections))
 
             setPosition({
                 section: 0,
                 clip: 0
             })
+            setVisitedClipBySection({})
 
             setIsTransitioning(false)
             setPendingTransition(false)
@@ -92,8 +104,8 @@ const VideoPage = () => {
     const currentSection = sections[position.section];
     const currentVideo = currentSection?.clips[position.clip]?.url
 
-    const totalDuration = getEstimatedTotalDuration(sections, position)
-    const globalCurrentTime = getEstimatedElapsedDuration(sections, position, currentTime)
+    const paceDelta = getPaceDelta(sections, position, visitedClipBySection)
+    const globalCurrentTime = getEstimatedElapsedDuration(sections, position, currentTime, visitedClipBySection)
 
     const canGoPreviousSection = position.section > 0
     const canGoNextSection = position.section < sections.length - 1
@@ -215,6 +227,12 @@ const VideoPage = () => {
             }
         }, 250);
 
+        // failsafe only: clears the overlay if the new clip never actually
+        // signals it's loaded (stalled network, bad file, etc). the normal
+        // path is handleVideoLoaded / handleVideoError firing and cancelling
+        // this via clearTransitionFailsafe() — this should rarely fire for
+        // real. kept long on purpose so a slow first-time load (cold fetch,
+        // no cache) has time to finish instead of getting cut off early.
         clearTransitionFailsafe()
         transitionFailsafeRef.current = setTimeout(() => {
             setIsTransitioning(false);
@@ -294,6 +312,12 @@ const VideoPage = () => {
         setIsTransitioning(false)
         setPendingTransition(false)
         console.error("Clip failed to load: ", currentVideo)
+        // NOTE: not setting loadError here on purpose — that state drives
+        // the full-page error screen further down, which would wipe out
+        // the whole player (timeline, position, controls) over what might
+        // just be one bad clip. a proper inline "this clip failed" surface
+        // is worth its own pass later; for now this at least stops the
+        // overlay from getting stuck if a clip genuinely errors out.
     }
 
     const handlePlay = () => setIsPlaying(true);
@@ -412,7 +436,8 @@ const VideoPage = () => {
 
                 <GlobalProgress
                     currentTime={globalCurrentTime}
-                    totalDuration={totalDuration}
+                    estimatedTotal={estimatedTotal}
+                    paceDelta={paceDelta}
                 />
 
                 <NavigationPanel
