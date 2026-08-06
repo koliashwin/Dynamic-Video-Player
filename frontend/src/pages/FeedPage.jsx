@@ -38,7 +38,7 @@ const FeedPage = () => {
         try {
             setLoading(true)
             setError(null)
-            setFlows(await listFlows())
+            setFlows((await listFlows()).filter((flow) => flow.is_published))
         } catch (error) {
             setError(error.message || 'Could not log flows')
         } finally {

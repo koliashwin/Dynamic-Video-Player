@@ -65,3 +65,9 @@ export const detachSectionFromFlow = (flowId, linkId, force = false) =>
 
 export const deleteFlow = (flowId) => 
     apiRequest(`/flows/${flowId}`, {method: 'DELETE'})
+
+export const publishFlow = (flowId) => 
+    apiRequest(`/flows/${flowId}/publish`, {method: 'POST'})
+
+export const unpublishFlow = (flowId) => 
+    apiRequest(`/flows/${flowId}/unpublish`, {method: 'POST'})

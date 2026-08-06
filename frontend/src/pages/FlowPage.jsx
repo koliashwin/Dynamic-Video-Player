@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { attachSectionToFlow, createFlow, deleteFlow, detachSectionFromFlow, listFlows, listSections } from '../services/videoConfig'
-import { Alert, Box, Button, CircularProgress, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
-import { AddLinkRounded, DeleteOutlineRounded } from '@mui/icons-material'
+import { Link as RouterLink } from 'react-router-dom'
+import { attachSectionToFlow, createFlow, deleteFlow, detachSectionFromFlow, listFlows, listSections, publishFlow, unpublishFlow } from '../services/videoConfig'
+import { Alert, Box, Button, Chip, CircularProgress, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { AddLinkRounded, DeleteOutlineRounded, PlayCircleOutlineRounded, PublicOffRounded, PublicRounded } from '@mui/icons-material'
 import { palette } from '../theme'
 
 const typeLabel = (type) => {
@@ -43,7 +44,7 @@ const AttachSectionRow = ({ flow, sections, onAttached }) => {
 
     return (
         <Stack spacing={0.75}>
-            <Stack direction="row" spacing={1} sx={{alignItems: 'center'}}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                 <TextField
                     select
                     size="small"
@@ -91,6 +92,7 @@ const FlowPage = () => {
 
     const [busyLinkId, setBusyLinkId] = useState(null)
     const [deletingId, setDeletingId] = useState(null)
+    const [publishingId, setPublishingId] = useState(null)
 
     const load = async () => {
         try {
@@ -161,6 +163,23 @@ const FlowPage = () => {
             setError(error.message || 'Could not delete flow')
         } finally {
             setDeletingId(null)
+        }
+    }
+
+    const handleTogglePublish = async (flow) => {
+        try {
+            setPublishingId(flow.id)
+            setError(null)
+            if (flow.is_published) {
+                await unpublishFlow(flow.id)
+            } else {
+                await publishFlow(flow.id)
+            }
+            await load()
+        } catch (error) {
+            setError(error.message || 'Could not update publish status')
+        } finally {
+            setPublishingId(null)
         }
     }
 
@@ -235,11 +254,27 @@ const FlowPage = () => {
                                 backgroundColor: 'rgba(255,255,255,0.03)'
                             }}
                         >
-                            <Stack direction="row" sx={{ alignItems:"flex-start", justifyContent:"space-between" }}>
+                            <Stack direction="row" sx={{ alignItems: "flex-start", justifyContent: "space-between" }}>
                                 <Stack spacing={0.25}>
-                                    <Typography variant="subtitle1" sx={{ fontSize: 15, textTransform: 'uppercase' }}>
-                                        {flow.name}
-                                    </Typography>
+                                    <Stack direction='row' spacing={1} sx={{ alignItems: 'center' }}>
+                                        <Typography variant="subtitle1" sx={{ fontSize: 15, textTransform: 'uppercase' }}>
+                                            {flow.name}
+                                        </Typography>
+                                        <Chip
+                                            label={flow.is_published ? 'PUBLISHED' : 'DRAFT'}
+                                            size='small'
+                                            sx={{
+                                                height: 18,
+                                                fontSize: 10,
+                                                fontWeight: 600,
+                                                letterSpacing: '0.05em',
+                                                color: flow.is_published ? palette.filmAmber : 'text.secondary',
+                                                backgroundColor: flow.is_published ? 'rgba(277,166,74, 0.15)' : 'rgba(255, 255, 255, 255, 0.08)',
+                                                border: '1px solid',
+                                                borderColor: flow.is_published ? palette.filmAmber : 'divider'
+                                            }}
+                                        />
+                                    </Stack>
                                     {flow.description && (
                                         <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
                                             {flow.description}
@@ -247,21 +282,49 @@ const FlowPage = () => {
                                     )}
                                 </Stack>
 
-                                <Tooltip title="Delete flow">
-                                    <span>
+                                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center'}}>
+                                    <Tooltip title="Preview / Play this flow">
                                         <IconButton
-                                            size="small"
-                                            onClick={() => handleDeleteFlow(flow.id)}
-                                            disabled={deletingId === flow.id}
+                                            component={RouterLink}
+                                            to={`/flow/${flow.id}`}
+                                            size='small'
                                         >
-                                            {deletingId === flow.id ? (
-                                                <CircularProgress size={16} />
-                                            ) : (
-                                                <DeleteOutlineRounded fontSize="small" />
-                                            )}
+                                            <PlayCircleOutlineRounded fontSize='small' />
                                         </IconButton>
-                                    </span>
-                                </Tooltip>
+                                    </Tooltip>
+                                    <Tooltip title={flow.is_published ? 'Unpublish (hide from feed)' : 'Publish (show in feed)'}>
+                                        <span>
+                                            <IconButton
+                                                size='small'
+                                                onClick={() => handleTogglePublish(flow)}
+                                                disabled={publishingId === flow.id}
+                                            >
+                                                {publishingId === flow.id ? (
+                                                    <CircularProgress size={16} />
+                                                ) : flow.is_published ? (
+                                                    <PublicRounded fontSize='small' sx={{color: palette.filmAmber}} />
+                                                ) : (
+                                                    <PublicOffRounded fontSize='small' />
+                                                )}
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                    <Tooltip title="Delete flow">
+                                        <span>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleDeleteFlow(flow.id)}
+                                                disabled={deletingId === flow.id}
+                                            >
+                                                {deletingId === flow.id ? (
+                                                    <CircularProgress size={16} />
+                                                ) : (
+                                                    <DeleteOutlineRounded fontSize="small" />
+                                                )}
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                </Stack>
                             </Stack>
 
                             <Stack spacing={0.75} sx={{ mt: 1.5, mb: 1.5 }}>
