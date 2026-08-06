@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 
 from app.config.database import Base
@@ -62,6 +62,7 @@ class Flow(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    is_published = Column(Boolean, nullable=False, default=False, server_default='false')
 
     section_links = relationship(
         "FlowSection",

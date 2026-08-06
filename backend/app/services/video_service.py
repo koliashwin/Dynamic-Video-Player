@@ -9,6 +9,17 @@ def resolve_flow(db: Session, flow_id: int | None):
     return db.query(Flow).order_by(Flow.id).first()
 
 
+def get_flow_playability_error(flow: Flow) -> str | None:
+    if not flow.section_links:
+        return f"'{flow.name}' has no sections attached yet. add at least one before playing it"
+
+    empty_sections = [
+        link.section.title for link in flow.section_links if not link.section.clip_links
+    ]
+    if empty_sections:
+        return f"'{flow.name}' has sections(s) with no clips: {', '.join(empty_sections)}. add clips or remove them form flow"
+
+
 def build_video_structure(db: Session, flow_id: int | None = None):
     
     flow = resolve_flow(db, flow_id)

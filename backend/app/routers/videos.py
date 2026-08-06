@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.config.database import get_db
-from app.services.video_service import build_video_structure, resolve_flow
+from app.services.video_service import build_video_structure, resolve_flow, get_flow_playability_error
 
 router = APIRouter(prefix='/videos', tags=["videos"])
 
@@ -19,18 +19,8 @@ def get_videos(
             detail="No flows found. check the backend or created one vid POST /flows"
         )
 
-    if not flow.section_links:
-        raise HTTPException(
-            status_code=422,
-            detail=f"'{flow.name}' has no sections attached yet. add at least one before playing it"
-        )
-
-    empty_sections = [
-        link.section.title for link in flow.section_links if not link.section.clip_links
-    ]
-    if empty_sections:
-        raise HTTPException(
-            status_code=422,
-            detail=f"'{flow.name}' has no section(s) with no clips: {', '.join(empty_sections)}. add clips or remove them form flow"
-        )
+    playability_error = get_flow_playability_error(flow)
+    if playability_error:
+        raise HTTPException(status_code=422, detail=playability_error)
+    
     return build_video_structure(db, flow.id)

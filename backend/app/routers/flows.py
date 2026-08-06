@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.models.video_clips import Flow, Section, FlowSection
 from app.schemas.video_clip import FlowCreate, FlowOut, AttachSectionRequest
+from app.services.video_service import get_flow_playability_error
 
 router = APIRouter(prefix='/flows', tags=['flows'])
 
@@ -74,3 +75,32 @@ def delete_flow(flow_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"deleted": flow_id}
+
+@router.post('/{flow_id}/publish', response_model=FlowOut)
+def publish_flow(flow_id: int, db: Session = Depends(get_db)):
+    flow = db.get(Flow, flow_id)
+    if not flow:
+        raise HTTPException(status_code=404, detail="flow not found")
+
+    # same rule playback already enforces, no publishg something that would just be broken in feed
+    playability_error = get_flow_playability_error(flow)
+    if playability_error:
+        raise HTTPException(status_code=422, detail=playability_error)
+
+    flow.is_published = True
+    db.commit()
+    db.refresh(flow)
+
+    return flow
+
+@router.post('/{flow_id}/unpublish', response_model=FlowOut)
+def unpublish_flow(flow_id: int, db: Session = Depends(get_db)):
+    flow = db.get(Flow, flow_id)
+    if not flow:
+        raise HTTPException(status_code=404, detail='flow not found')
+
+    flow.is_published = False
+    db.commit()
+    db.refresh(flow)
+
+    return flow
