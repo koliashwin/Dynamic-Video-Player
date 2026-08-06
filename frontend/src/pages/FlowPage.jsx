@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { attachSectionToFlow, createFlow, deleteFlow, detachSectionFromFlow, listFlows, listSections, publishFlow, unpublishFlow } from '../services/videoConfig'
 import { Alert, Box, Button, Chip, CircularProgress, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
-import { AddLinkRounded, DeleteOutlineRounded, PlayCircleOutlineRounded, PublicOffRounded, PublicRounded } from '@mui/icons-material'
+import { AddLinkRounded, DeleteOutlineRounded, OpenInNewRounded, PlayCircleOutlineRounded, PublicOffRounded, PublicRounded, VisibilityOffRounded, VisibilityRounded } from '@mui/icons-material'
 import { palette } from '../theme'
+import InlineFlowPreview from '../components/InlineFlowPreview'
 
 const typeLabel = (type) => {
     if (type === 'choice') return { text: 'BRANCH', color: palette.reelTeal }
@@ -93,6 +94,7 @@ const FlowPage = () => {
     const [busyLinkId, setBusyLinkId] = useState(null)
     const [deletingId, setDeletingId] = useState(null)
     const [publishingId, setPublishingId] = useState(null)
+    const [expandedPreviewId, setExpandedPreviewId] = useState(null)
 
     const load = async () => {
         try {
@@ -283,13 +285,26 @@ const FlowPage = () => {
                                 </Stack>
 
                                 <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center'}}>
-                                    <Tooltip title="Preview / Play this flow">
+                                    <Tooltip title={expandedPreviewId === flow.id ? 'Close preview' : 'Preview inline'}>
+                                        <IconButton
+                                            size='small'
+                                            onClick={() => setExpandedPreviewId((prev) => prev === flow.id ? null : flow.id)}
+                                            sx={expandedPreviewId === flow.id ? {color: palette.filmAmber} : undefined}
+                                        >
+                                            {expandedPreviewId === flow.id ? (
+                                                <VisibilityOffRounded fontSize='small' />
+                                            ) : (
+                                                <VisibilityRounded fontSize='small' />
+                                            )}
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Open full palyer in new context">
                                         <IconButton
                                             component={RouterLink}
                                             to={`/flow/${flow.id}`}
                                             size='small'
                                         >
-                                            <PlayCircleOutlineRounded fontSize='small' />
+                                            <OpenInNewRounded fontSize='small' />
                                         </IconButton>
                                     </Tooltip>
                                     <Tooltip title={flow.is_published ? 'Unpublish (hide from feed)' : 'Publish (show in feed)'}>
@@ -386,6 +401,10 @@ const FlowPage = () => {
                             </Stack>
 
                             <AttachSectionRow flow={flow} sections={sections} onAttached={load} />
+
+                            {expandedPreviewId === flow.id && (
+                                <InlineFlowPreview flowId={flow.id} />
+                            )}
                         </Box>
                     ))}
                 </Stack>

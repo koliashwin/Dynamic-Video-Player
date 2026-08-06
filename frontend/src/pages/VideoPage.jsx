@@ -1,59 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { getVideoStructure } from '../services/videoService';
 import VideoPlayer from '../components/VideoPlayer';
 import VideoControls from '../components/VideoControls';
 import NavigationPanel from '../components/NavigationPanel';
-import ChoiceSection from '../components/ChoiceSection';
 import Timeline from '../components/Timeline';
-import { getBaselineTotalDuration, getEstimatedElapsedDuration, getPaceDelta } from '../utils/timelineUtils';
 import GlobalProgress from '../components/GlobalProgress';
 import { Alert, Box, CircularProgress, Container, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { palette } from '../theme';
 import { DynamicFeedRounded, TuneRounded } from '@mui/icons-material';
 import { Link as RouterLink, useParams } from 'react-router-dom';
+import { usePlayableFlow } from '../hooks/UsePlayableFlow';
 
 const VideoPage = () => {
 
     const { flowId } = useParams();
-    const videoRef = useRef(null);
     const leftColumnRef = useRef(null);
-
-    const [sections, setSections] = useState([])
-    const [flowName, setFlowName] = useState(null)
-    const [position, setPosition] = useState({
-        section: 0,
-        clip: 0
-    })
-
-    const [isPlaying, setIsPlaying] = useState(false)
-    const [currentTime, setCurrentTime] = useState(0)
-    const [duration, setDuration] = useState(0)
-    const [isTransitioning, setIsTransitioning] = useState(false)
-    const [pendingTransition, setPendingTransition] = useState(false)
-    const [loadError, setLoadError] = useState(null)
     const [leftColumnHeight, setLeftColumnHeight] = useState(null)
-    const [visitedClipBySection, setVisitedClipBySection] = useState({})
-    const [estimatedTotal, setEstimatedTotal] = useState(0)
-    const transitionFailsafeRef = useRef(null)
 
-    const clearTransitionFailsafe = () => {
-        if (transitionFailsafeRef.current) {
-            clearTimeout(transitionFailsafeRef.current)
-            transitionFailsafeRef.current = null
-        }
-    }
-
-    useEffect(() => {
-        loadVideoStructure();
-    }, [flowId]);
-
-    useEffect(() => {
-        setVisitedClipBySection(prev => {
-            const existing = prev[position.section] || [];
-            if (existing.includes(position.clip)) return prev;
-            return { ...prev, [position.section]: [...existing, position.clip]};
-        })
-    }, [position.section, position.clip])
+    const player = usePlayableFlow(flowId)
 
     useEffect(() => {
         if (!leftColumnRef.current) return;
@@ -68,272 +31,17 @@ const VideoPage = () => {
         return () => observer.disconnect();
     }, [])
 
-    const loadVideoStructure = async () => {
-        try {
-            setLoadError(null)
-            setSections([])
-            const data = await getVideoStructure(flowId);
-
-            if (!data) {
-                setLoadError('That flow could not be found')
-                return
-            }
-
-            setSections(data.sections);
-            setFlowName(data.flow?.name || null)
-            setEstimatedTotal(getBaselineTotalDuration(data.sections))
-
-            setPosition({
-                section: 0,
-                clip: 0
-            })
-            setVisitedClipBySection({})
-
-            setIsTransitioning(false)
-            setPendingTransition(false)
-            clearTransitionFailsafe()
-
-        } catch (error) {
-            console.error(error)
-            setLoadError(error.message || 'could not reach the video service - either backend is down or flow is not created')
-        }
-    };
-
-    const videoKey = `${position.section}-${position.clip}`
-
-    const currentSection = sections[position.section];
-    const currentVideo = currentSection?.clips[position.clip]?.url
-
-    const paceDelta = getPaceDelta(sections, position, visitedClipBySection)
-    const globalCurrentTime = getEstimatedElapsedDuration(sections, position, currentTime, visitedClipBySection)
-
-    const canGoPreviousSection = position.section > 0
-    const canGoNextSection = position.section < sections.length - 1
-
-    // random sections pick their clip automatically. no manual stepping,
-    const canGoPreviousClip = currentSection?.type !== 'random' && position.clip > 0
-    const canGoNextClip = currentSection?.type !== 'random' && position.clip < currentSection?.clips.length - 1
-
-    const nextClip = () => {
-        if (!currentSection) return false;
-
-        if (position.clip < currentSection.clips.length - 1) {
-            setPosition(prev => ({
-                ...prev,
-                clip: prev.clip + 1
-            }));
-            return true;
-        }
-        return false;
-    }
-
-    const previousClip = () => {
-        if (position.clip > 0) {
-            setPosition(prev => ({
-                ...prev,
-                clip: prev.clip - 1
-            }))
-            return true;
-        }
-        return false;
-    }
-
-    const selectClip = (clipIndex) => {
-        if (clipIndex === position.clip)
-            return false;
-
-        setPosition(prev => ({
-            ...prev,
-            clip: clipIndex
-        }))
-        return true
-    }
-
-    const getRandomClipIndex = (section) => {
-        return Math.floor(
-            Math.random() * section.clips.length
-        )
-    }
-
-    const nextSection = () => {
-
-        if (position.section >= sections.length - 1) return false
-
-        const nextSectionIndex = position.section + 1;
-        const targetSection = sections[nextSectionIndex];
-        let clipIndex = 0;
-
-        if (targetSection.type === "random") {
-            clipIndex = getRandomClipIndex(targetSection)
-        }
-
-        setPosition({
-            section: nextSectionIndex,
-            clip: clipIndex
-        })
-
-        return true
-    }
-
-    const previousSection = () => {
-        if (position.section <= 0) return false;
-
-        const prevSectionIndex = position.section - 1;
-        const targetSection = sections[prevSectionIndex]
-        let clipIndex = 0;
-
-        if (targetSection.type === "random") {
-            clipIndex = getRandomClipIndex(targetSection)
-        }
-
-        setPosition({
-            section: prevSectionIndex,
-            clip: clipIndex
-        })
-        return true
-    }
-
-    const goToSection = (sectionIndex) => {
-        if (sectionIndex === position.section)
-            return false;
-
-        const targetSection = sections[sectionIndex]
-        let clipIndex = 0
-
-        if (targetSection.type === "random") {
-            clipIndex = getRandomClipIndex(targetSection)
-        }
-
-        setPosition({
-            section: sectionIndex,
-            clip: clipIndex
-        })
-        return true
-    }
-
-    const switchWithTransition = (callback) => {
-        if (isTransitioning) return;
-
-        setIsTransitioning(true)
-        setPendingTransition(true)
-
-        setTimeout(() => {
-            const changed = callback()
-
-            if (!changed) {
-                setIsTransitioning(false)
-                setPendingTransition(false)
-                clearTransitionFailsafe()
-            }
-        }, 250);
-
-        // failsafe only: clears the overlay if the new clip never actually
-        // signals it's loaded (stalled network, bad file, etc). the normal
-        // path is handleVideoLoaded / handleVideoError firing and cancelling
-        // this via clearTransitionFailsafe() — this should rarely fire for
-        // real. kept long on purpose so a slow first-time load (cold fetch,
-        // no cache) has time to finish instead of getting cut off early.
-        clearTransitionFailsafe()
-        transitionFailsafeRef.current = setTimeout(() => {
-            setIsTransitioning(false);
-            setPendingTransition(false);
-        }, 8000);
-
-    }
-
-    const togglePlayPause = () => {
-        if (!videoRef.current) return;
-
-        if (videoRef.current.paused) {
-            videoRef.current.play()
-        } else {
-            videoRef.current.pause()
-        }
-    }
-
-    const handleTimeUpdate = () => {
-        if (!videoRef.current) return;
-
-        setCurrentTime(videoRef.current.currentTime)
-    }
-
-    const handleLoadedMetadata = () => {
-        if (!videoRef.current) return;
-
-        setDuration(videoRef.current.duration)
-    }
-
-    const handleSeek = (event, newValue) => {
-        if (!videoRef.current) return;
-
-        videoRef.current.currentTime = newValue
-
-        setCurrentTime(newValue)
-    }
-
-    const handleVideoEnded = () => {
-        if (!currentSection) return;
-
-        const hasMoreClips = position.clip < currentSection.clips.length - 1;
-        const hasMoreSections = position.section < sections.length - 1
-
-        if (currentSection.type === 'choice' || currentSection.type === 'random') {
-            switchWithTransition(nextSection);
-        } else {
-            if (hasMoreClips) {
-                switchWithTransition(nextClip);
-            } else if (hasMoreSections) {
-                switchWithTransition(nextSection);
-            } else {
-                setIsTransitioning(false);
-                setPendingTransition(false)
-            }
-        }
-
-    }
-
-    const handleVideoLoaded = () => {
-
-        setCurrentTime(0);
-
-        if (videoRef.current) {
-            videoRef.current.play().catch(() => { });
-        }
-
-        if (pendingTransition) {
-            clearTransitionFailsafe();
-            setIsTransitioning(false);
-            setPendingTransition(false);
-        }
-    }
-
-    const handleVideoError = () => {
-        clearTransitionFailsafe()
-        setIsTransitioning(false)
-        setPendingTransition(false)
-        console.error("Clip failed to load: ", currentVideo)
-        // NOTE: not setting loadError here on purpose — that state drives
-        // the full-page error screen further down, which would wipe out
-        // the whole player (timeline, position, controls) over what might
-        // just be one bad clip. a proper inline "this clip failed" surface
-        // is worth its own pass later; for now this at least stops the
-        // overlay from getting stuck if a clip genuinely errors out.
-    }
-
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false)
-
-    if (loadError) {
+    if (player.loadError) {
         return (
             <Container maxWidth='sm' sx={{ pt: 10 }}>
                 <Alert severity='error' variant='outlined'>
-                    {loadError}
+                    {player.loadError}
                 </Alert>
             </Container> 
         )
     }
 
-    if (sections.length === 0) {
+    if (player.sections.length === 0) {
         return (
             <Box
                 sx={{
@@ -363,8 +71,8 @@ const VideoPage = () => {
                             Dynamic Video Player
                         </Typography>
                         <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>
-                            {flowName
-                                ? `Playing: ${flowName}`
+                            {player.flowName
+                                ? `Playing: ${player.flowName}`
                                 : 'A branching video with dynamic navigation system'}
                         </Typography>
                     </Stack>
@@ -398,58 +106,54 @@ const VideoPage = () => {
                     <Stack ref={leftColumnRef} spacing={3} sx={{ flex: 1, minWidth: 0, width: '100%' }}>
 
                         <VideoPlayer
-                            clipKey={videoKey}
-                            videoRef={videoRef}
-                            src={currentVideo}
-                            isTransitioning={isTransitioning}
-                            onEnded={handleVideoEnded}
-                            onTimeUpdate={handleTimeUpdate}
-                            onLoadedMetadata={handleLoadedMetadata}
-                            onLoadedData={handleVideoLoaded}
-                            onPlay={handlePlay}
-                            onPause={handlePause}
-                            onError={handleVideoError}
+                            clipKey={player.videoKey}
+                            videoRef={player.videoRef}
+                            src={player.currentVideo}
+                            isTransitioning={player.isTransitioning}
+                            onEnded={player.handleVideoEnded}
+                            onTimeUpdate={player.handleTimeUpdate}
+                            onLoadedMetadata={player.handleLoadedMetadata}
+                            onLoadedData={player.handleVideoLoaded}
+                            onPlay={player.handlePlay}
+                            onPause={player.handlePause}
+                            onError={player.handleVideoError}
                         />
 
                         <VideoControls
-                            isPlaying={isPlaying}
-                            currentTime={currentTime}
-                            duration={duration}
-                            onTogglePlay={togglePlayPause}
-                            onSeek={handleSeek}
+                            isPlaying={player.isPlaying}
+                            currentTime={player.currentTime}
+                            duration={player.duration}
+                            onTogglePlay={player.togglePlayPause}
+                            onSeek={player.handleSeek}
                         />
                     </Stack>
 
                     <Timeline
-                        sections={sections}
-                        currentSectionIndex={position.section}
-                        onSectionSelect={(index) => switchWithTransition(
-                            () => goToSection(index)
-                        )}
-                        selectedClip={position.clip}
-                        onSelectClip={(index) => switchWithTransition(
-                            () => selectClip(index)
-                        )}
+                        sections={player.sections}
+                        currentSectionIndex={player.position.section}
+                        onSectionSelect={player.goToSectionWithTransition}
+                        selectedClip={player.position.clip}
+                        onSelectClip={player.selectClipWithTransition}
                         maxHeight={leftColumnHeight}
                     />
                 </Stack>
 
                 <GlobalProgress
-                    currentTime={globalCurrentTime}
-                    estimatedTotal={estimatedTotal}
-                    paceDelta={paceDelta}
+                    currentTime={player.globalCurrentTime}
+                    estimatedTotal={player.estimatedTotal}
+                    paceDelta={player.paceDelta}
                 />
 
                 <NavigationPanel
-                    onPrevSection={() => switchWithTransition(previousSection)}
-                    onPrevClip={() => switchWithTransition(previousClip)}
-                    onNextClip={() => switchWithTransition(nextClip)}
-                    onNextSection={() => switchWithTransition(nextSection)}
-                    onReload={loadVideoStructure}
-                    canGoPreviousSection={canGoPreviousSection}
-                    canGoNextClip={canGoNextClip}
-                    canGoPreviousClip={canGoPreviousClip}
-                    canGoNextSection={canGoNextSection}
+                    onPrevSection={player.previousSectionWithTransition}
+                    onPrevClip={player.previousClipWithTransition}
+                    onNextClip={player.nextClipWithTransition}
+                    onNextSection={player.nextSectionWithTransition}
+                    onReload={player.loadVideoStructure}
+                    canGoPreviousSection={player.canGoPreviousSection}
+                    canGoNextClip={player.canGoNextClip}
+                    canGoPreviousClip={player.canGoPreviousClip}
+                    canGoNextSection={player.canGoNextSection}
                 />
 
 
