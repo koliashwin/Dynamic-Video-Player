@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { palette } from '../theme'
 import { attachClipToSection, createSection, deleteSection, detachClipFromSection, listClips, listSections } from '../services/videoConfig'
-import { Alert, Box, Button, CircularProgress, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, CircularProgress, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
 import { AddLinkRounded, DeleteOutlineRounded } from '@mui/icons-material'
 import { formatTimecode } from '../utils/formatTimecode'
 
 const SECTION_TYPES = [
-    { value: 'single', label: 'Single - plays clip normally' },
+    { value: 'single', label: 'Single - plays clip in linear order' },
     { value: 'choice', label: 'Choice - viewer can pick a clip to play' },
     { value: 'random', label: 'Random - one clip play at random' }
 ]
@@ -164,7 +164,7 @@ const SectionPage = () => {
         } catch (error) {
             if (error.status === 409) {
                 const confirmed = window.confirm(`${error.message}\n\nDelete anyway?`)
-                if (confirmed){
+                if (confirmed) {
                     try {
                         await deleteSection(sectionId, true)
                         setSections((prev) => prev.filter((section) => section.id !== sectionId))
@@ -246,7 +246,13 @@ const SectionPage = () => {
                     No sections yet. Create one above, then attach clips in it
                 </Typography>
             ) : (
-                <Stack spacing={2}>
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                        gap: 2
+                    }}
+                >
                     {sections.map((section) => {
                         const label = typeLabel(section.type)
                         return (
@@ -257,20 +263,33 @@ const SectionPage = () => {
                                     borderRadius: 1.5,
                                     border: '1px solid',
                                     borderColor: 'divider',
-                                    backgroundColor: 'rgba(255,255,255,0.03)'
+                                    backgroundColor: 'rgba(255,255,255,0.03)',
+                                    transition: 'border-color 160ms ease',
+                                    '&:hover': { borderColor: 'rgba(255,255,255,0.18)' }
                                 }}
                             >
                                 <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                                    <Stack spacing={0.25}>
+                                    <Stack spacing={0.5}>
                                         <Typography variant='subtitle1' sx={{ fontSize: 15, textTransform: 'uppercase' }}>
                                             {section.title}
                                         </Typography>
-                                        <Typography sx={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: label.color }}>
-                                            {label.text}
-                                        </Typography>
+                                        <Chip
+                                            label={label.text}
+                                            size="small"
+                                            sx={{
+                                                height: 18,
+                                                fontSize: 10,
+                                                fontWeight: 600,
+                                                letterSpacing: '0.05em',
+                                                color: label.color,
+                                                backgroundColor: 'rgba(255,255,255,0.06)',
+                                                border: '1px solid',
+                                                borderColor: label.color
+                                            }}
+                                        />
                                     </Stack>
 
-                                    <Tooltip title="Delet section">
+                                    <Tooltip title="Delete section">
                                         <span>
                                             <IconButton
                                                 size='small'
@@ -297,25 +316,37 @@ const SectionPage = () => {
                                             <Stack
                                                 key={link.id}
                                                 direction='row'
-                                                spacing={1.5}
+                                                spacing={1.25}
                                                 sx={{
                                                     alignItems: 'center',
-                                                    px: 1.25,
+                                                    px: 1,
                                                     py: 0.75,
                                                     borderRadius: 1,
                                                     backgroundColor: 'rgba(255,255,255,0.04)'
                                                 }}
                                             >
-                                                <Typography
+                                                <Box
                                                     sx={{
-                                                        fontFamily: '"IBM Plex Mono", monospace',
-                                                        fontSize: 11,
-                                                        color: 'text.secondary',
-                                                        width: 24
+                                                        width: 20,
+                                                        height: 20,
+                                                        flexShrink: 0,
+                                                        borderRadius: '50%',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        backgroundColor: 'rgba(255,255,255,0.08)'
                                                     }}
                                                 >
-                                                    {String(link.order_index).padStart(2, '0')}
-                                                </Typography>
+                                                    <Typography
+                                                        sx={{
+                                                            fontFamily: '"IBM Plex Mono", monospace',
+                                                            fontSize: 10,
+                                                            color: 'text.secondary'
+                                                        }}
+                                                    >
+                                                        {link.order_index}
+                                                    </Typography>
+                                                </Box>
                                                 <Typography sx={{ fontSize: 13, flex: 1 }} noWrap>
                                                     {link.clip.title}
                                                 </Typography>
@@ -346,7 +377,7 @@ const SectionPage = () => {
                             </Box>
                         )
                     })}
-                </Stack>
+                </Box>
             )}
         </Stack>
     )

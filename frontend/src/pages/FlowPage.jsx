@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { attachSectionToFlow, createFlow, deleteFlow, detachSectionFromFlow, listFlows, listSections, publishFlow, unpublishFlow } from '../services/videoConfig'
-import { Alert, Box, Button, Chip, CircularProgress, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
-import { AddLinkRounded, DeleteOutlineRounded, OpenInNewRounded, PlayCircleOutlineRounded, PublicOffRounded, PublicRounded, VisibilityOffRounded, VisibilityRounded } from '@mui/icons-material'
+import { Alert, Box, Button, Chip, CircularProgress, Collapse, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { AddLinkRounded, CloseRounded, DeleteOutlineRounded, ExpandLessRounded, ExpandMoreRounded, LinkRounded, OpenInNewRounded, PlayCircleOutlineRounded, PublicOffRounded, PublicRounded, VisibilityOffRounded, VisibilityRounded } from '@mui/icons-material'
 import { palette } from '../theme'
 import InlineFlowPreview from '../components/InlineFlowPreview'
 
@@ -45,7 +45,7 @@ const AttachSectionRow = ({ flow, sections, onAttached }) => {
 
     return (
         <Stack spacing={0.75}>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
                 <TextField
                     select
                     size="small"
@@ -81,6 +81,192 @@ const AttachSectionRow = ({ flow, sections, onAttached }) => {
     )
 }
 
+const FlowCard = ({
+    flow,
+    sections,
+    compact,
+    isActive,
+    sectionsExpanded,
+    onToggleSections,
+    onPreview,
+    onTogglePublish,
+    publishingId,
+    onDelete,
+    deletingId,
+    onAttached,
+    onDetach,
+    busyLinkId
+
+}) => (
+    <Box
+        sx={{
+            p: compact ? 1.5 : 2,
+            borderRadius: 1.5,
+            border: '1px solid',
+            borderColor: isActive ? palette.filmAmber : 'divider',
+            backgroundColor: isActive ? 'rgba(225, 166, 74, 0.05)' : 'rgba(255,255,255,0.03)',
+            transition: 'border-color 160ms ease, background-color 160ms ease, padding 220ms ease'
+        }}
+    >
+        <Stack direction='row' sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }} spacing={1}>
+            <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+                <Stack direction='row' spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Typography
+                        variant='subtitle1'
+                        noWrap
+                        sx={{ fontSize: compact ? 13.5 : 15, textTransform: 'uppercase' }}
+                    >
+                        {flow.name}
+                    </Typography>
+                    <Chip
+                        label={flow.is_published ? 'PUBLISHED' : 'DRAFT'}
+                        size='small'
+                        sx={{
+                            height: 18,
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: '0.05em',
+                            color: flow.is_published ? palette.filmAmber : 'text.secondary',
+                            backgroundColor: flow.is_published ? 'rgba(227,166,74, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid',
+                            borderColor: flow.is_published ? palette.filmAmber : 'divider'
+                        }}
+                    />
+                </Stack>
+                {!compact && flow.description && (
+                    <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+                        {flow.description}
+                    </Typography>
+                )}
+            </Stack>
+
+            <Tooltip title='Delete Flow'>
+                <span>
+                    <IconButton size='small' onClick={onDelete} disabled={deletingId === flow.id}>
+                        {deletingId === flow.id ? <CircularProgress size={14} /> : <DeleteOutlineRounded sx={{ fontSize: 18 }} />}
+                    </IconButton>
+                </span>
+            </Tooltip>
+        </Stack>
+
+        <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Button
+                size='small'
+                variant={isActive ? 'contained' : 'outlined'}
+                startIcon={<PlayCircleOutlineRounded fontSize='small' />}
+                onClick={onPreview}
+                sx={
+                    isActive
+                        ? { backgroundColor: palette.filmAmber, color: '#0E1013', '&:hover': { backgroundColor: palette.filmAmber } }
+                        : { borderColor: palette.filmAmber, color: palette.filmAmber }
+                }
+            >
+                {isActive ? 'Previewing' : 'Preview'}
+            </Button>
+
+            <Button
+                size='small'
+                variant='outlined'
+                startIcon={
+                    publishingId === flow.id ? (
+                        <CircularProgress size={14} />
+                    ) : flow.is_published ? (
+                        <PublicRounded fontSize='small' />
+                    ) : (
+                        <PublicOffRounded fontSize='small' />
+                    )
+                }
+                onClick={onTogglePublish}
+                disabled={publishingId === flow.id}
+                sx={{ borderColor: 'divider', color: 'text.primary' }}
+            >
+                {flow.is_published ? "Unpublish" : 'Publish'}
+            </Button>
+
+            <Button
+                size="small"
+                variant="text"
+                startIcon={<LinkRounded fontSize="small" />}
+                endIcon={sectionsExpanded ? <ExpandLessRounded fontSize="small" /> : <ExpandMoreRounded fontSize="small" />}
+                onClick={onToggleSections}
+                sx={{ color: 'text.secondary' }}
+            >
+                Sections ({flow.section_links.length})
+            </Button>
+
+            <Tooltip title="Open full player in a new context">
+                <IconButton component={RouterLink} to={`/flow/${flow.id}`} size="small" sx={{ ml: 'auto' }}>
+                    <OpenInNewRounded fontSize="small" />
+                </IconButton>
+            </Tooltip>
+        </Stack>
+
+        <Collapse in={sectionsExpanded} timeout={200}>
+            <Stack spacing={0.75} sx={{ mt: 1.5 }}>
+                {flow.section_links.length === 0 ? (
+                    <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+                        No sections attached yet.
+                    </Typography>
+                ) : (
+                    flow.section_links.map((link) => {
+                        const label = typeLabel(link.section.type)
+                        return (
+                            <Stack
+                                key={link.id}
+                                direction="row"
+                                spacing={1.25}
+                                sx={{
+                                    alignItems: 'center',
+                                    px: 1,
+                                    py: 0.75,
+                                    borderRadius: 1,
+                                    backgroundColor: 'rgba(255,255,255,0.04)'
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        width: 20,
+                                        height: 20,
+                                        flexShrink: 0,
+                                        borderRadius: '50%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        backgroundColor: 'rgba(255,255,255,0.08)'
+                                    }}
+                                >
+                                    <Typography sx={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 10, color: 'text.secondary' }}>
+                                        {link.order_index}
+                                    </Typography>
+                                </Box>
+                                <Typography sx={{ fontSize: 13, flex: 1 }} noWrap>
+                                    {link.section.title}
+                                </Typography>
+                                <Typography sx={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: label.color }}>
+                                    {label.text}
+                                </Typography>
+                                <Tooltip title="Detach Section">
+                                    <span>
+                                        <IconButton
+                                            size='small'
+                                            onClick={() => onDetach(flow, link.id)}
+                                            disabled={busyLinkId === link.id}
+                                        >
+                                            {busyLinkId === link.id ? <CircularProgress size={14} /> : <DeleteOutlineRounded sx={{ fontSize: 16 }} />}
+                                        </IconButton>
+                                    </span>
+                                </Tooltip>
+                            </Stack>
+                        )
+                    })
+                )}
+
+                <AttachSectionRow flow={flow} sections={sections} onAttached={onAttached} />
+            </Stack>
+        </Collapse>
+    </Box>
+)
+
 const FlowPage = () => {
     const [flows, setFlows] = useState([])
     const [sections, setSections] = useState([])
@@ -94,7 +280,10 @@ const FlowPage = () => {
     const [busyLinkId, setBusyLinkId] = useState(null)
     const [deletingId, setDeletingId] = useState(null)
     const [publishingId, setPublishingId] = useState(null)
-    const [expandedPreviewId, setExpandedPreviewId] = useState(null)
+
+    const [activeFlowId, setActiveFlowId] = useState(null)
+    const [panelEntered, setPanelEntered] = useState(false)
+    const [expandedSectionsId, setExpandedSectionsId] = useState(null)
 
     const load = async () => {
         try {
@@ -113,6 +302,15 @@ const FlowPage = () => {
     useEffect(() => {
         load()
     }, [])
+
+    useEffect(() => {
+        if (!activeFlowId) {
+            setPanelEntered(false)
+            return
+        }
+        const timer = setTimeout(() => setPanelEntered(true), 20)
+        return () => clearTimeout(timer)
+    }, [activeFlowId])
 
     const handleCreate = async (event) => {
         event.preventDefault()
@@ -161,6 +359,7 @@ const FlowPage = () => {
             setDeletingId(flowId)
             await deleteFlow(flowId)
             setFlows((prev) => prev.filter((flow) => flow.id !== flowId))
+            if (activeFlowId === flowId) setActiveFlowId(null)
         } catch (error) {
             setError(error.message || 'Could not delete flow')
         } finally {
@@ -184,6 +383,8 @@ const FlowPage = () => {
             setPublishingId(null)
         }
     }
+
+    const activeFlow = flows.find((flow) => flow.id === activeFlowId) || null
 
     return (
         <Stack spacing={3}>
@@ -244,169 +445,75 @@ const FlowPage = () => {
                     No flows yet. Create one above, then attach sections in playback order.
                 </Typography>
             ) : (
-                <Stack spacing={2}>
-                    {flows.map((flow) => (
+                <Stack spacing={2} direction={{ xs: 'column', md: 'row' }} sx={{ alignItems: 'flex-start' }}>
+                    <Box
+                        sx={{
+                            width: '100%',
+                            flex: activeFlowId ? { xs: '1 1 100%', md: '0 0 34%' } : '1 1 100%',
+                            minWidth: 0,
+                            transition: 'flex-basis 320ms cubic-bezier(0.4, 0, 0.2, 1)'
+                        }}
+                    >
+                        <Stack spacing={1.25}>
+                            {flows.map((flow) => (
+                                <FlowCard
+                                    key={flow.id}
+                                    flow={flow}
+                                    sections={sections}
+                                    compact={!!activeFlowId}
+                                    isActive={activeFlowId === flow.id}
+                                    sectionsExpanded={expandedSectionsId === flow.id}
+                                    onToggleSections={() =>
+                                        setExpandedSectionsId((prev) => (prev === flow.id ? null : flow.id))
+                                    }
+                                    onPreview={() => setActiveFlowId((prev) => (prev === flow.id ? null : flow.id))}
+                                    onTogglePublish={() => handleTogglePublish(flow)}
+                                    publishingId={publishingId}
+                                    onDelete={() => handleDeleteFlow(flow.id)}
+                                    deletingId={deletingId}
+                                    onAttached={load}
+                                    onDetach={handleDetach}
+                                    busyLinkId={busyLinkId}
+                                />
+                            ))}
+                        </Stack>
+                    </Box>
+
+                    {activeFlowId && (
                         <Box
-                            key={flow.id}
                             sx={{
+                                flex: { xs: '1 1 100%', md: '1 1 66%' },
+                                width: '100%',
+                                minWidth: 0,
+                                position: { md: 'sticky' },
+                                top: { md: 16 },
                                 p: 2,
                                 borderRadius: 1.5,
                                 border: '1px solid',
-                                borderColor: 'divider',
-                                backgroundColor: 'rgba(255,255,255,0.03)'
+                                borderColor: palette.filmAmber,
+                                backgroundColor: 'rgba(227, 166, 74, 0.04)',
+                                opacity: panelEntered ? 1 : 0,
+                                transform: panelEntered ? 'translateX(0)' : 'translateX(24px)',
+                                transition: 'opacity 300ms ease, transform 300ms ease'
                             }}
                         >
-                            <Stack direction="row" sx={{ alignItems: "flex-start", justifyContent: "space-between" }}>
-                                <Stack spacing={0.25}>
-                                    <Stack direction='row' spacing={1} sx={{ alignItems: 'center' }}>
-                                        <Typography variant="subtitle1" sx={{ fontSize: 15, textTransform: 'uppercase' }}>
-                                            {flow.name}
-                                        </Typography>
-                                        <Chip
-                                            label={flow.is_published ? 'PUBLISHED' : 'DRAFT'}
-                                            size='small'
-                                            sx={{
-                                                height: 18,
-                                                fontSize: 10,
-                                                fontWeight: 600,
-                                                letterSpacing: '0.05em',
-                                                color: flow.is_published ? palette.filmAmber : 'text.secondary',
-                                                backgroundColor: flow.is_published ? 'rgba(277,166,74, 0.15)' : 'rgba(255, 255, 255, 255, 0.08)',
-                                                border: '1px solid',
-                                                borderColor: flow.is_published ? palette.filmAmber : 'divider'
-                                            }}
-                                        />
-                                    </Stack>
-                                    {flow.description && (
-                                        <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-                                            {flow.description}
-                                        </Typography>
-                                    )}
-                                </Stack>
-
-                                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center'}}>
-                                    <Tooltip title={expandedPreviewId === flow.id ? 'Close preview' : 'Preview inline'}>
-                                        <IconButton
-                                            size='small'
-                                            onClick={() => setExpandedPreviewId((prev) => prev === flow.id ? null : flow.id)}
-                                            sx={expandedPreviewId === flow.id ? {color: palette.filmAmber} : undefined}
-                                        >
-                                            {expandedPreviewId === flow.id ? (
-                                                <VisibilityOffRounded fontSize='small' />
-                                            ) : (
-                                                <VisibilityRounded fontSize='small' />
-                                            )}
-                                        </IconButton>
-                                    </Tooltip>
-                                    <Tooltip title="Open full palyer in new context">
-                                        <IconButton
-                                            component={RouterLink}
-                                            to={`/flow/${flow.id}`}
-                                            size='small'
-                                        >
-                                            <OpenInNewRounded fontSize='small' />
-                                        </IconButton>
-                                    </Tooltip>
-                                    <Tooltip title={flow.is_published ? 'Unpublish (hide from feed)' : 'Publish (show in feed)'}>
-                                        <span>
-                                            <IconButton
-                                                size='small'
-                                                onClick={() => handleTogglePublish(flow)}
-                                                disabled={publishingId === flow.id}
-                                            >
-                                                {publishingId === flow.id ? (
-                                                    <CircularProgress size={16} />
-                                                ) : flow.is_published ? (
-                                                    <PublicRounded fontSize='small' sx={{color: palette.filmAmber}} />
-                                                ) : (
-                                                    <PublicOffRounded fontSize='small' />
-                                                )}
-                                            </IconButton>
-                                        </span>
-                                    </Tooltip>
-                                    <Tooltip title="Delete flow">
-                                        <span>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleDeleteFlow(flow.id)}
-                                                disabled={deletingId === flow.id}
-                                            >
-                                                {deletingId === flow.id ? (
-                                                    <CircularProgress size={16} />
-                                                ) : (
-                                                    <DeleteOutlineRounded fontSize="small" />
-                                                )}
-                                            </IconButton>
-                                        </span>
-                                    </Tooltip>
-                                </Stack>
+                            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                                <Typography
+                                    variant="subtitle1"
+                                    sx={{ fontSize: 13, letterSpacing: '0.08em', color: palette.filmAmber, textTransform: 'uppercase' }}
+                                >
+                                    Previewing — {activeFlow?.name}
+                                </Typography>
+                                <Tooltip title="Close preview">
+                                    <IconButton size="small" onClick={() => setActiveFlowId(null)}>
+                                        <CloseRounded fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
                             </Stack>
 
-                            <Stack spacing={0.75} sx={{ mt: 1.5, mb: 1.5 }}>
-                                {flow.section_links.length === 0 ? (
-                                    <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-                                        No sections attached yet.
-                                    </Typography>
-                                ) : (
-                                    flow.section_links.map((link) => {
-                                        const label = typeLabel(link.section.type)
-                                        return (
-                                            <Stack
-                                                key={link.id}
-                                                direction="row"
-                                                spacing={1.5}
-                                                sx={{
-                                                    alignItems: 'center',
-                                                    px: 1.25,
-                                                    py: 0.75,
-                                                    borderRadius: 1,
-                                                    backgroundColor: 'rgba(255,255,255,0.04)'
-                                                }}
-                                            >
-                                                <Typography
-                                                    sx={{
-                                                        fontFamily: '"IBM Plex Mono", monospace',
-                                                        fontSize: 11,
-                                                        color: 'text.secondary',
-                                                        width: 24
-                                                    }}
-                                                >
-                                                    {String(link.order_index).padStart(2, '0')}
-                                                </Typography>
-                                                <Typography sx={{ fontSize: 13, flex: 1 }} noWrap>
-                                                    {link.section.title}
-                                                </Typography>
-                                                <Typography sx={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', color: label.color }}>
-                                                    {label.text}
-                                                </Typography>
-                                                <Tooltip title="Detach section">
-                                                    <span>
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => handleDetach(flow, link.id)}
-                                                            disabled={busyLinkId === link.id}
-                                                        >
-                                                            {busyLinkId === link.id ? (
-                                                                <CircularProgress size={14} />
-                                                            ) : (
-                                                                <DeleteOutlineRounded sx={{ fontSize: 16 }} />
-                                                            )}
-                                                        </IconButton>
-                                                    </span>
-                                                </Tooltip>
-                                            </Stack>
-                                        )
-                                    })
-                                )}
-                            </Stack>
-
-                            <AttachSectionRow flow={flow} sections={sections} onAttached={load} />
-
-                            {expandedPreviewId === flow.id && (
-                                <InlineFlowPreview flowId={flow.id} />
-                            )}
+                            <InlineFlowPreview flowId={activeFlowId} />
                         </Box>
-                    ))}
+                    )}
                 </Stack>
             )}
         </Stack>

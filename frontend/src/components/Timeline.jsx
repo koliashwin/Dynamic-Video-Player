@@ -23,7 +23,7 @@ const Timeline = ({
     return (
         <Box sx={{
             display: 'flex',
-            width: { xs: 12, md: 320 },
+            width: { xs: 12, md: 240 },
             flexShrink: 0,
             alignSelf: 'stretch',
             maxHeight: maxHeight || 'none',
