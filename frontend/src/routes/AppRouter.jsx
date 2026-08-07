@@ -6,12 +6,13 @@ import VideoPage from '../pages/VideoPage'
 import SectionPage from '../pages/SectionPage'
 import FlowPage from '../pages/FlowPage'
 import FeedPage from '../pages/FeedPage'
+import LandingPage from '../pages/LandingPage'
 
 const AppRouter = () => {
     return (
         <BrowserRouter>
             <Routes>
-                <Route path='/' element={<FeedPage />} />
+                <Route path='/' element={<LandingPage />} />
                 <Route path='/feed' element={<FeedPage />} />
                 <Route path='/flow/:flowId' element={<VideoPage />} />
                 <Route path='/flow' element={<VideoPage />} />
