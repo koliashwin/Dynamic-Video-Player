@@ -1,13 +1,17 @@
 import { Box, LinearProgress, Stack, Typography } from '@mui/material';
 import React from 'react'
 import { formatTimecode } from '../utils/formatTimecode';
+import {palette} from '../theme'
 
 const GlobalProgress = ({
     currentTime,
-    totalDuration
+    estimatedTotal,
+    paceDelta = 0
 }) => {
 
-    const percentage = totalDuration > 0 ? Math.min(100, (currentTime / totalDuration) * 100) : 0;
+    const percentage = estimatedTotal > 0 ? Math.min(100, (currentTime / estimatedTotal) * 100) : 0;
+    const roundedDelta = Math.round(paceDelta);
+    const showDelta = Math.abs(roundedDelta) >= 1;
 
     return (
         <Box sx={{width: '100%'}}>
@@ -29,7 +33,18 @@ const GlobalProgress = ({
                         color: 'text.secondary'
                     }}
                 >
-                    {formatTimecode(currentTime)} / {formatTimecode(totalDuration)}
+                    ~{formatTimecode(estimatedTotal)}
+                    {showDelta && (
+                        <Box
+                            component="span"
+                            sx={{
+                                ml: 0.75,
+                                color: roundedDelta > 0 ? palette.filmAmber : palette.reelTeal
+                            }}
+                        >
+                            {roundedDelta > 0 ? '+' : '-'}{formatTimecode(Math.abs(roundedDelta))}
+                        </Box>
+                    )}
                 </Typography>
             </Stack>
             <LinearProgress

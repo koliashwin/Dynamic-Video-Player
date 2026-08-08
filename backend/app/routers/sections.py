@@ -48,23 +48,52 @@ def attach_clip(section_id: int, payload: AttachClipRequest, db: Session = Depen
     return {'attached': True, 'section_id': section_id, 'clip_id': clip.id}
 
 @router.delete('/{section_id}/clips/{link_id}')
-def detach_clip(section_id: int, link_id: int, db: Session = Depends(get_db)):
+def detach_clip(section_id: int, link_id: int, force: bool = False, db: Session = Depends(get_db)):
     link = db.get(SectionClip, link_id)
 
     if not link or link.section_id != section_id:
         raise HTTPException(status_code=404, detail='Attachment not Found')
-    
+
+    section = link.section
+    is_last_clip = len(section.clip_links) <= 1
+
+    if is_last_clip and not force:
+        affected_flows = [flow_link.flow.name for flow_link in section.flow_links]
+        if affected_flows:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Removing this clip will leave '{section.title}' empty, "
+                    f"breaking : {', '.join(affected_flows)}"
+                )
+            )
+
     db.delete(link)
     db.commit()
 
     return{'detached': link_id, 'section_id': section_id}
 
 @router.delete('/{section_id}')
-def delete_section(section_id: int, db: Session = Depends(get_db)):
+def delete_section(section_id: int, force: bool = False, db: Session = Depends(get_db)):
     section = db.get(Section, section_id)
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
-    
+
+    if not force:
+        affected_flows = [
+            flow_link.flow.name
+            for flow_link in section.flow_links
+            if len(flow_link.flow.section_links) <= 1
+        ]
+        if affected_flows:
+            noun = 'flow' if len(affected_flows) == 1 else 'flows'
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"'{section.title}' is the only section in {', '.join(affected_flows)}."
+                    f"Deleting it will leave that {noun} empty and unplayable."
+                )
+            )
     db.delete(section)
     db.commit()
 

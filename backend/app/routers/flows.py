@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.models.video_clips import Flow, Section, FlowSection
 from app.schemas.video_clip import FlowCreate, FlowOut, AttachSectionRequest
+from app.services.video_service import get_flow_playability_error
 
 router = APIRouter(prefix='/flows', tags=['flows'])
 
@@ -30,8 +31,11 @@ def attach_section(flow_id: int, payload: AttachSectionRequest, db: Session = De
     section = db.get(Section, payload.section_id)
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
+
+    if not section.clip_links:
+        raise HTTPException(status_code=400, detail=f"'{section.title}' has no clips attached yet. Add at least one clip before using it in a flow")
     
-    order_index = payload.order_index = payload.order_index
+    order_index = payload.order_index
     if order_index is None:
         max_order = (
             db.query(func.max(FlowSection.order_index))
@@ -47,12 +51,15 @@ def attach_section(flow_id: int, payload: AttachSectionRequest, db: Session = De
     return {'attached': True, 'flow_id': flow_id, 'section_id': section.id}
 
 @router.delete('/{flow_id}/sections/{link_id}')
-def detach_section(flow_id: int, link_id: int, db: Session = Depends(get_db)):
+def detach_section(flow_id: int, link_id: int, force: bool = False, db: Session = Depends(get_db)):
     link = db.get(FlowSection, link_id)
 
     if not link or link.flow_id != flow_id:
         raise HTTPException(status_code=404, detail='Attachment not found')
-    
+
+    if len(link.flow.section_links) <= 1 and not force:
+        raise HTTPException(status_code=409, detail=f"'{link.section.title}' is the only section in '{link.flow.name}'. removing it will leave that flow empty and unplayable")
+
     db.delete(link)
     db.commit()
 
@@ -68,3 +75,32 @@ def delete_flow(flow_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"deleted": flow_id}
+
+@router.post('/{flow_id}/publish', response_model=FlowOut)
+def publish_flow(flow_id: int, db: Session = Depends(get_db)):
+    flow = db.get(Flow, flow_id)
+    if not flow:
+        raise HTTPException(status_code=404, detail="flow not found")
+
+    # same rule playback already enforces, no publishg something that would just be broken in feed
+    playability_error = get_flow_playability_error(flow)
+    if playability_error:
+        raise HTTPException(status_code=422, detail=playability_error)
+
+    flow.is_published = True
+    db.commit()
+    db.refresh(flow)
+
+    return flow
+
+@router.post('/{flow_id}/unpublish', response_model=FlowOut)
+def unpublish_flow(flow_id: int, db: Session = Depends(get_db)):
+    flow = db.get(Flow, flow_id)
+    if not flow:
+        raise HTTPException(status_code=404, detail='flow not found')
+
+    flow.is_published = False
+    db.commit()
+    db.refresh(flow)
+
+    return flow

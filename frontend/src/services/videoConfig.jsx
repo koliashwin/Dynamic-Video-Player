@@ -15,8 +15,8 @@ export const uploadClip = async (title, file) => {
     })
 }
 
-export const deleteClip = (clipId) => 
-    apiRequest(`/clips/${clipId}`, { method: 'DELETE'})
+export const deleteClip = (clipId, force = false) => 
+    apiRequest(`/clips/${clipId}${force ? '?force=true' : ''}`, { method: 'DELETE'})
 
 // --- sections ---
 
@@ -36,8 +36,8 @@ export const attachClipToSection = (sectionId, clipId, orderIndex) =>
         body: JSON.stringify({clip_id: clipId, order_index: orderIndex ?? null})
     })
 
-export const detachClipFromSection = (sectionId, linkId) => 
-    apiRequest(`/sections/${sectionId}/clips/${linkId}`, { method: 'DELETE'})
+export const detachClipFromSection = (sectionId, linkId, force = false) => 
+    apiRequest(`/sections/${sectionId}/clips/${linkId}${force ? '?force=true' : ''}`, { method: 'DELETE'})
 
 export const deleteSection = (sectionId) => 
     apiRequest(`/sections/${sectionId}`, {method: 'DELETE'})
@@ -60,8 +60,14 @@ export const attachSectionToFlow = (flowId, sectionId, orderIndex) =>
         body: JSON.stringify({ section_id: sectionId, order_index: orderIndex ?? null})
     })
 
-export const detachSectionFromFlow = (flowId, linkId) => 
-    apiRequest(`/flows/${flowId}/sections/${linkId}`, { method: 'DELETE'})
+export const detachSectionFromFlow = (flowId, linkId, force = false) => 
+    apiRequest(`/flows/${flowId}/sections/${linkId}${force ? '?force=true' : ''}`, { method: 'DELETE'})
 
 export const deleteFlow = (flowId) => 
     apiRequest(`/flows/${flowId}`, {method: 'DELETE'})
+
+export const publishFlow = (flowId) => 
+    apiRequest(`/flows/${flowId}/publish`, {method: 'POST'})
+
+export const unpublishFlow = (flowId) => 
+    apiRequest(`/flows/${flowId}/unpublish`, {method: 'POST'})

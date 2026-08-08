@@ -61,7 +61,19 @@ const ClipPage = () => {
             await deleteClip(clipId)
             setClips((prev) => prev.filter((clip) => clip.id !== clipId))
         } catch (error) {
-            setError(error.message || "could not delet the clip")
+            if (error.status === 409) {
+                const confirmed = window.confirm(`${error.message}\n\nDelete anyway?`)
+                if (confirmed) {
+                    try {
+                        await deleteClip(clipId, true)
+                        setClips((prev) => prev.filter((clip) => clip.id !== clipId))
+                    } catch (retryError) {
+                        setError(retryError.message || "could not delete the clip")
+                    }
+                }
+            } else {
+                setError(error.message || "could not delet the clip")
+            }
         } finally {
             setDeletingId(null)
         }
@@ -142,62 +154,103 @@ const ClipPage = () => {
                     No clips uploaded yet. Add one above to satrt building sections
                 </Typography>
             ) : (
-                <Stack spacing={1}>
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                        gap: 2
+                    }}
+                >
                     {clips.map((clip) => (
-                        <Stack
+                        <Box
                             key={clip.id}
-                            direction='row'
-                            spacing={1.5}
                             sx={{
-                                alignItems: 'center',
-                                px: 1.5,
-                                py: 1,
-                                borderRadius: 1,
+                                borderRadius: 1.5,
                                 border: '1px solid',
                                 borderColor: 'divider',
-                                backgroundColor: 'rgba(255,255,255,0.03)'
+                                backgroundColor: 'rgba(255,255,255,0.03)',
+                                overflow: 'hidden',
+                                transition: 'border-color 160ms ease, transform 160ms ease',
+                                '&:hover': {
+                                    borderColor: palette.filmAmber,
+                                    transform: 'translateY(-2px)'
+                                },
+                                '&:hover .clip-card-delete': {
+                                    opacity: 1
+                                }
                             }}
                         >
-                            <MovieCreationOutlined fontSize='small' sx={{ color: palette.reelTeal }} />
-
-                            <Stack sx={{ flex: 1, minWidth: 0}}>
-                                <Typography noWrap sx={{ fontSize: 14}}>
-                                    {clip.title}
-                                </Typography>
-                                <Typography noWrap sx={{ fontSize: 11, color: 'text.secondary', fontFamily: '"IBM Plex Mono", monospace' }}>
-                                    {clip.filename}
-                                </Typography>
-                            </Stack>
-
-                            <Typography
+                            <Box
                                 sx={{
-                                    fontFamily: '"IBM Plex Mono", monospace',
-                                    fontSize: 12,
-                                    color: 'text.secondary',
-                                    flexShrink: 0
+                                    position: 'relative',
+                                    height: 96,
+                                    background: 'linear-gradient(135deg, #1B1D21 0%, #24272c 100%)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
                                 }}
                             >
-                                {formatTimecode(clip.duration)}
-                            </Typography>
+                                <MovieCreationOutlined sx={{ fontSize: 30, color: palette.reelTeal, opacity: 0.5 }} />
+                                
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        right: 6,
+                                        bottom: 6,
+                                        px: 0.6,
+                                        py: 0.15,
+                                        borderRadius: 0.5,
+                                        backgroundColor: 'rgba(0,0,0,0.7)'
+                                    }}
+                                >
+                                    <Typography sx={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: 10, color: '#fff', lineHeight: 1.4}}>
+                                        {formatTimecode(clip.duration)}
+                                    </Typography>
+                                </Box>
 
-                            <Tooltip title="Delete clip">
-                                <span>
-                                    <IconButton
-                                        size='small'
-                                        onClick={() => handleDelete(clip.id)}
-                                        disabled={deletingId === clip.id}
-                                    >
-                                        {deletingId === clip.id ? (
-                                            <CircularProgress size={16} />
-                                        ) : (
-                                            <DeleteOutlineRounded fontSize='small' />
-                                        )}
-                                    </IconButton>
-                                </span>
-                            </Tooltip>
-                        </Stack>
+                                <Box
+                                    className='clip-card-delete'
+                                    sx={{
+                                        position: 'absolute',
+                                        top: 4,
+                                        right: 4,
+                                        opacity: 0,
+                                        transition: "opacity 160ms ease"
+                                    }}
+                                >
+                                    <Tooltip title="Delete Clip">
+                                        <span>
+                                            <IconButton
+                                                size='small'
+                                                onClick={() => handleDelete(clip.id)}
+                                                disabled={deletingId === clip.id}
+                                                sx={{
+                                                    backgroundColor: 'rgba(0,0,0,0.5)',
+                                                    '&:hover': {backgroundColor: 'rgba(0,0,0,0.7)'}
+                                                }}
+                                            >
+                                                {deletingId === clip.id ? (
+                                                    <CircularProgress size={14} sx={{ color: '#fff'}} />
+                                                ) : (
+                                                    <DeleteOutlineRounded fontSize='small' sx={{ color: '#fff'}} />
+                                                )}
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                </Box>
+                            </Box>
+
+                            <Box sx={{p: 1.25}}>
+                                <Typography noWrap sx={{ fontSize: 13, fontWeight: 500}}>
+                                    {clip.title}
+                                </Typography>
+                                <Typography noWrap sx={{ fontSize: 10.5, color: 'text.secondary', fontFamily: '"IBM Plex Mono", monospace'}}>
+                                    {clip.filename}
+                                </Typography>
+                            </Box>
+                        </Box>
                     ))}
-                </Stack>
+                </Box>
             )}
         </Stack>
     )

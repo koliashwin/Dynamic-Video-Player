@@ -23,7 +23,7 @@ const Timeline = ({
     return (
         <Box sx={{
             display: 'flex',
-            width: { xs: 12, md: 320 },
+            width: { xs: 12, md: 240 },
             flexShrink: 0,
             alignSelf: 'stretch',
             maxHeight: maxHeight || 'none',
@@ -122,16 +122,18 @@ const Timeline = ({
                                         </Typography>
                                     )}
 
-                                    {isActive && isChoice && (
-                                        <ChoiceSection
-                                            clips={section.clips}
-                                            onSelectClip={onSelectClip}
-                                            selectedClip={selectedClip}
-                                        />
-                                    )}
                                 </Stack>
                             </ButtonBase>
 
+                            {isActive && isChoice && (
+                                <Box sx={{ mt: 0.75 }}>
+                                    <ChoiceSection
+                                        clips={section.clips}
+                                        onSelectClip={onSelectClip}
+                                        selectedClip={selectedClip}
+                                    />
+                                </Box>
+                            )}
 
                         </Box>
                     )

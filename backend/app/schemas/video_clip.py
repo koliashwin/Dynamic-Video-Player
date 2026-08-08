@@ -61,6 +61,7 @@ class FlowOut(BaseModel):
     id: IdStr
     name: str
     description: Optional[str] = None
+    is_published: bool = False
     section_links: list[FlowSectionOut] = []
 
 

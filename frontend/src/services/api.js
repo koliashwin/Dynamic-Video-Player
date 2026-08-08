@@ -11,7 +11,9 @@ export const apiRequest = async (endpoint_path, options = {}) => {
         } catch {
             // fall back to statusText
         }
-        throw new Error(detail)
+        const error = new Error(detail)
+        error.status = response.status
+        throw error
     }
 
     if (response.status === 204) return null
