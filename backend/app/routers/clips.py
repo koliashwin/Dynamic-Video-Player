@@ -12,21 +12,31 @@ from app.models.video_clips import Clip
 from app.schemas.video_clip import ClipOut
 from app.services.media_utils import get_video_duration, ensure_faststart
 from app.services.storage import upload_file, delete_file
+from app.services.auth import require_current_user_id
 
 router = APIRouter(prefix='/clips', tags=['clips'])
 
 ALLOWED_EXTENSIONS = (".mp4", ".mov", ".webm")
 
 @router.get("", response_model=list[ClipOut])
-def list_clips(db: Session = Depends(get_db)):
-    return db.query(Clip).order_by(Clip.id).all()
+def list_clips(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(require_current_user_id)
+):
+    return (
+        db.query(Clip)
+        .filter(Clip.owner_id == user_id)
+        .order_by(Clip.id)
+        .all()
+    )
 
 
 @router.post("/upload", response_model=ClipOut)
 async def upload_clip(
     title: str = Form(...),
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: str = Depends(require_current_user_id)
 ):
     if not file.filename.lower().endswith(ALLOWED_EXTENSIONS):
         raise HTTPException(
@@ -60,7 +70,7 @@ async def upload_clip(
                 detail=f"Could not upload clip to storage: {error}"
             )
     
-    clip = Clip(title=title, filename=safe_filename, duration=duration)
+    clip = Clip(title=title, filename=safe_filename, duration=duration, owner_id=user_id)
     db.add(clip)
     db.commit()
     db.refresh(clip)
@@ -68,8 +78,17 @@ async def upload_clip(
     return clip
 
 @router.delete('/{clip_id}')
-def delete_clip(clip_id: int, force: bool = False, db: Session = Depends(get_db)):
-    clip = db.get(Clip, clip_id)
+def delete_clip(
+    clip_id: int, 
+    force: bool = False, 
+    db: Session = Depends(get_db),
+    user_id: str = Depends(require_current_user_id)
+):
+    clip = (
+        db.get(Clip)
+        .filter(Clip.id == clip_id, Clip.owner_id == user_id)
+        .first()
+    )
 
     if not clip:
         raise HTTPException(status_code=404, detail="Clip not found")

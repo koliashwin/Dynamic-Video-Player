@@ -5,16 +5,29 @@ from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.models.video_clips import Section, Clip, SectionClip
 from app.schemas.video_clip import SectionCreate, SectionOut, AttachClipRequest
+from app.services.auth import require_current_user_id
 
 router = APIRouter(prefix='/sections', tags=["sections"])
 
 @router.get("", response_model=list[SectionOut])
-def list_sections(db: Session = Depends(get_db)):
-    return db.query(Section).order_by(Section.id).all()
+def list_sections(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(require_current_user_id)
+):
+    return (
+        db.query(Section)
+        .filter(Section.owner_id == user_id)
+        .order_by(Section.id)
+        .all()
+    )
 
 @router.post("", response_model=SectionOut)
-def create_section(payload: SectionCreate, db: Session = Depends(get_db)):
-    section = Section(title=payload.title, type=payload.type)
+def create_section(
+    payload: SectionCreate, 
+    db: Session = Depends(get_db),
+    user_id: str = Depends(require_current_user_id)
+):
+    section = Section(title=payload.title, type=payload.type, owner_id=user_id)
     db.add(section)
     db.commit()
     db.refresh(section)
@@ -22,13 +35,28 @@ def create_section(payload: SectionCreate, db: Session = Depends(get_db)):
     return section
 
 @router.post("/{section_id}/clips")
-def attach_clip(section_id: int, payload: AttachClipRequest, db: Session = Depends(get_db)):
-    section = db.get(Section, section_id)
+def attach_clip(
+    section_id: int, 
+    payload: AttachClipRequest, 
+    db: Session = Depends(get_db),
+    user_id: str = Depends(require_current_user_id)
+):
+    section = (
+        db.query(Section)
+        .filter(Section.id == section_id, Section.owner_id == user_id)
+        .first()
+    )
 
     if not section:
         raise HTTPException(status_code=404, detail='Section not found')
-    
-    clip = db.get(Clip, payload.clip_id)
+
+    # check if the clip attached to the section is actually belong to
+    # same logged in user
+    clip = (
+        db.query(Clip)
+        .filter(Clip.id == payload.clip_id, Clip.owner_id == user_id)
+        .first()
+    )
     if not clip:
         raise HTTPException(status_code=404, detail='Clip not found')
     
@@ -48,10 +76,16 @@ def attach_clip(section_id: int, payload: AttachClipRequest, db: Session = Depen
     return {'attached': True, 'section_id': section_id, 'clip_id': clip.id}
 
 @router.delete('/{section_id}/clips/{link_id}')
-def detach_clip(section_id: int, link_id: int, force: bool = False, db: Session = Depends(get_db)):
+def detach_clip(
+    section_id: int, 
+    link_id: int, 
+    force: bool = False, 
+    db: Session = Depends(get_db),
+    user_id: str = Depends(require_current_user_id)
+):
     link = db.get(SectionClip, link_id)
 
-    if not link or link.section_id != section_id:
+    if not link or link.section_id != section_id or link.section.owner_id != user_id:
         raise HTTPException(status_code=404, detail='Attachment not Found')
 
     section = link.section
@@ -74,8 +108,17 @@ def detach_clip(section_id: int, link_id: int, force: bool = False, db: Session 
     return{'detached': link_id, 'section_id': section_id}
 
 @router.delete('/{section_id}')
-def delete_section(section_id: int, force: bool = False, db: Session = Depends(get_db)):
-    section = db.get(Section, section_id)
+def delete_section(
+    section_id: int, 
+    force: bool = False, 
+    db: Session = Depends(get_db),
+    user_id: str = Depends(require_current_user_id)
+):
+    section = (
+        db.query(Section)
+        .filter(Section.owner_id == user_id, Section.id == section_id)
+        .first()
+    )
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
 
