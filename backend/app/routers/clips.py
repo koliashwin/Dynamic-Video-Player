@@ -85,7 +85,7 @@ def delete_clip(
     user_id: str = Depends(require_current_user_id)
 ):
     clip = (
-        db.get(Clip)
+        db.query(Clip)
         .filter(Clip.id == clip_id, Clip.owner_id == user_id)
         .first()
     )
