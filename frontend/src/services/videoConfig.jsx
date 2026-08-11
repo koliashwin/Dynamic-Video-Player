@@ -46,6 +46,8 @@ export const deleteSection = (sectionId) =>
 
 export const listFlows = () => apiRequest('/flows')
 
+export const listPublishedFlows = () => apiRequest('/flows/published')
+
 export const createFlow = (name, description) =>
     apiRequest('/flows', {
         method: 'POST',
