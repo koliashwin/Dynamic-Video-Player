@@ -80,6 +80,14 @@ def attach_section(
 
     if not section.clip_links:
         raise HTTPException(status_code=400, detail=f"'{section.title}' has no clips attached yet. Add at least one clip before using it in a flow")
+
+    already_attached = (
+        db.query(FlowSection)
+        .filter(FlowSection.flow_id == flow_id, FlowSection.section_id == section.id)
+        .first()
+    )
+    if already_attached:
+        raise HTTPException(status_code=400, detail=f"'{section.title}' is already attached to this flow")
     
     order_index = payload.order_index
     if order_index is None:

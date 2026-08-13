@@ -56,18 +56,20 @@ async def upload_clip(
         try:
             duration = get_video_duration(destination)
         except Exception as error:
+            print(f"[upload] duration read failed for {file.filename!r}: {error}")
             raise HTTPException(
-                status_code=500,
-                detail=f"Could not read video duration: {error}"
+                status_code=400,
+                detail=f"This file doesn't appear to be a valid video. Please check the file and try again"
             )
 
         try:
             ensure_faststart(destination)
             upload_file(destination, safe_filename)
         except Exception as error:
+            print(f"[upload] stroage/remux failed or {file.filename!r}: {error}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Could not upload clip to storage: {error}"
+                detail=f"Could not upload clip to storage, try again"
             )
     
     clip = Clip(title=title, filename=safe_filename, duration=duration, owner_id=user_id)

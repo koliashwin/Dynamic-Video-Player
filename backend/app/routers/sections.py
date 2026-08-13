@@ -59,6 +59,14 @@ def attach_clip(
     )
     if not clip:
         raise HTTPException(status_code=404, detail='Clip not found')
+
+    already_attached = (
+        db.query(SectionClip)
+        .filter(SectionClip.section_id == section_id, SectionClip.clip_id == clip.id)
+        .first()
+    )
+    if already_attached:
+        raise HTTPException(status_code=400, detail=f"'{clip.title}' is already attached to this section")
     
     order_index = payload.order_index
     if order_index is None:
