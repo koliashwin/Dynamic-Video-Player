@@ -30,18 +30,23 @@ def get_video_duration(filepath: str) -> float:
             "or bundled in bin/ next to the app (.exe file), for the offline build."
         )
     
-    result = subprocess.run(
-        [
-            binary_path('ffprobe'),
-            '-v', 'error',
-            '-show_entries', 'format=duration',
-            '-of', 'json',
-            filepath
-        ],
-        capture_output=True,
-        text=True,
-        check=True
-    )
+    try:
+        result = subprocess.run(
+            [
+                binary_path('ffprobe'),
+                '-v', 'error',
+                '-show_entries', 'format=duration',
+                '-of', 'json',
+                filepath
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=30
+        )
+    except subprocess.TimeoutExpired:
+         raise RuntimeError("ffprobe timed out reading this file")
+    
     if result.returncode != 0:
             raise RuntimeError(f"ffprobe failed to fetch duration: {result.stderr[-500:]}")
     
@@ -50,18 +55,22 @@ def get_video_duration(filepath: str) -> float:
 
 def ensure_faststart(path: str) -> None:
     remuxed = f"{path}.faststart.mp4"
-    result = subprocess.run(
-        [
-            binary_path('ffmpeg'),
-            '-y', '-i', 
-            path, '-c', 'copy',
-            '-movflags', '+faststart', 
-            remuxed
-        ],
-        check=True,
-        text=True,
-        capture_output=True
-    )
+    try:
+        result = subprocess.run(
+            [
+                binary_path('ffmpeg'),
+                '-y', '-i', 
+                path, '-c', 'copy',
+                '-movflags', '+faststart', 
+                remuxed
+            ],
+            check=True,
+            text=True,
+            capture_output=True,
+            timeout=120
+        )
+    except subprocess.TimeoutExpired:
+         raise RuntimeError("ffmpg timed out remuxing this file")
     if result.returncode != 0:
         raise RuntimeError(f"ffmpeg faststart remux failed: {result.stderr[-500:]}")
 

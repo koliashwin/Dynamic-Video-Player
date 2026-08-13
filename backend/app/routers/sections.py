@@ -110,10 +110,17 @@ def detach_clip(
                 )
             )
 
+    unpublished = []
+    if is_last_clip:
+        for flow_link in section.flow_links:
+            if flow_link.flow.is_published:
+                flow_link.flow.is_published = False
+                unpublished.append(flow_link.flow.name)
+
     db.delete(link)
     db.commit()
 
-    return{'detached': link_id, 'section_id': section_id}
+    return{'detached': link_id, 'section_id': section_id, 'unpublished_flows': unpublished}
 
 @router.delete('/{section_id}')
 def delete_section(
@@ -145,7 +152,14 @@ def delete_section(
                     f"Deleting it will leave that {noun} empty and unplayable."
                 )
             )
+
+    unpublished = []
+    for flow_link in section.flow_link: 
+        if len(flow_link.flow.section_link) <= 1 and flow_link.flow.is_published:
+            flow_link.flow.is_published = False
+            unpublished.append(flow_link.flow.name)
+
     db.delete(section)
     db.commit()
 
-    return {"deleted": section_id}
+    return {"deleted": section_id, "unpublished_flows": unpublished}

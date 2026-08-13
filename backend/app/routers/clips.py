@@ -17,6 +17,8 @@ from app.services.auth import require_current_user_id
 router = APIRouter(prefix='/clips', tags=['clips'])
 
 ALLOWED_EXTENSIONS = (".mp4", ".mov", ".webm")
+MAX_UPLOAD_SIZE_BYTES = 500 * 1024 * 1024   # 500MB upload limit/clip
+UPLOAD_CHUNK_SIZE = 1 * 1024 * 1024         # 1MB read chunks
 
 @router.get("", response_model=list[ClipOut])
 def list_clips(
@@ -51,7 +53,19 @@ async def upload_clip(
         destination = os.path.join(tmp_dir, safe_filename)
 
         with open(destination, 'wb') as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            # shutil.copyfileobj(file.file, buffer)
+            total_written = 0
+            while True:
+                chunk = await file.read(UPLOAD_CHUNK_SIZE)
+                if not chunk:
+                    break
+                total_written += len(chunk)
+                if total_written > MAX_UPLOAD_SIZE_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File is too large. maximum upload size is {MAX_UPLOAD_SIZE_BYTES // (1024 * 1024)}MB."
+                    )
+                buffer.write(chunk)
 
         try:
             duration = get_video_duration(destination)
@@ -95,6 +109,7 @@ def delete_clip(
     if not clip:
         raise HTTPException(status_code=404, detail="Clip not found")
 
+    unpublished = []
     if not force:
         affected_flows_by_section = {}
         for section_link in clip.section_links:
@@ -113,10 +128,18 @@ def delete_clip(
                 status_code=409,
                 detail=f"Deleting this clip will empty: {'; '.join(parts)}"
             )
+    else:
+        for section_link in clip.section_links:
+            section = section_link.section
+            if len(section.clip_links) <= 1:
+                for flow_link in section.flow_links:
+                    if flow_link.flow.is_published:
+                        flow_link.flow.is_published = False
+                        unpublished.append(flow_link.flow.name)
 
     delete_file(clip.filename)
     
     db.delete(clip)
     db.commit()
 
-    return {'deleted': clip_id}
+    return {'deleted': clip_id, 'unpublished_flows': unpublished}
