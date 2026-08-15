@@ -49,7 +49,7 @@ const ConfigLayout = () => {
                         <Typography>
                             Sign in to manage clips, sections and flows.
                         </Typography>
-                        <SignInButton mode='model'>
+                        <SignInButton mode='modal'>
                             <Button variant='contained' sx={{ backgroundColor: palette.filmAmber }}>
                                 Sign In
                             </Button>
