@@ -154,8 +154,8 @@ def delete_section(
             )
 
     unpublished = []
-    for flow_link in section.flow_link: 
-        if len(flow_link.flow.section_link) <= 1 and flow_link.flow.is_published:
+    for flow_link in section.flow_links: 
+        if len(flow_link.flow.section_links) <= 1 and flow_link.flow.is_published:
             flow_link.flow.is_published = False
             unpublished.append(flow_link.flow.name)
 
