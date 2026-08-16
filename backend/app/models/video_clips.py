@@ -18,6 +18,7 @@ class Clip(Base):
     title = Column(String, nullable=False)
     filename = Column(String, nullable=False, unique=True)
     duration = Column(Float, nullable=False, default=0.0)
+    owner_id = Column(String, nullable=True, index=True)    # clerk user_id refence
 
     section_links = relationship(
         "SectionClip", 
@@ -31,6 +32,7 @@ class Section(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     type = Column(Enum(SectionType), nullable=False, default=SectionType.single)
+    owner_id = Column(String, nullable=True, index=True)    # clerk user_id refence
 
     clip_links = relationship(
         "SectionClip",
@@ -63,6 +65,7 @@ class Flow(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     is_published = Column(Boolean, nullable=False, default=False, server_default='false')
+    owner_id = Column(String, nullable=True, index=True)    # clerk user_id refence
 
     section_links = relationship(
         "FlowSection",

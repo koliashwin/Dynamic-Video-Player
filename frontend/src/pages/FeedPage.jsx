@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { listFlows } from '../services/videoConfig'
+import { listFlows, listPublishedFlows } from '../services/videoConfig'
 import { Alert, Box, Button, CircularProgress, Container, IconButton, Stack, Tooltip, Typography } from '@mui/material'
 import { ArrowBackRounded, PlayArrowRounded, TuneRounded } from '@mui/icons-material'
 import { Link as RouterLink } from 'react-router-dom'
@@ -38,7 +38,7 @@ const FeedPage = () => {
         try {
             setLoading(true)
             setError(null)
-            setFlows((await listFlows()).filter((flow) => flow.is_published))
+            setFlows(await listPublishedFlows())
         } catch (error) {
             setError(error.message || 'Could not log flows')
         } finally {
