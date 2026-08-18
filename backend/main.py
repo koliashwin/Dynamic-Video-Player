@@ -6,13 +6,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config.database import Base, engine
+import app.models.vaults
+import app.models.video_clips
+
 from app.routers.videos import router as video_router
 from app.routers.clips import router as clip_router
 from app.routers.sections import router as section_router
 from app.routers.flows import router as flow_router
 
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 

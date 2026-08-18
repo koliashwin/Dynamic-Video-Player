@@ -19,6 +19,9 @@ class Clip(Base):
     filename = Column(String, nullable=False, unique=True)
     duration = Column(Float, nullable=False, default=0.0)
     owner_id = Column(String, nullable=True, index=True)    # clerk user_id refence
+    vault_id = Column(Integer, ForeignKey('vaults.id'), nullable=False, index=True)
+
+    vault = relationship("Vault")
 
     section_links = relationship(
         "SectionClip", 
@@ -33,6 +36,9 @@ class Section(Base):
     title = Column(String, nullable=False)
     type = Column(Enum(SectionType), nullable=False, default=SectionType.single)
     owner_id = Column(String, nullable=True, index=True)    # clerk user_id refence
+    vault_id = Column(Integer, ForeignKey('vaults.id'), nullable=False, index=True)
+    
+    vault = relationship("Vault")
 
     clip_links = relationship(
         "SectionClip",
