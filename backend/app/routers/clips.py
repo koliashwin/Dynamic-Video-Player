@@ -13,6 +13,7 @@ from app.schemas.video_clip import ClipOut
 from app.services.media_utils import get_video_duration, ensure_faststart
 from app.services.storage import upload_file, delete_file
 from app.services.auth import require_current_user_id
+from app.services.vault_service import ger_or_create_default_vault
 
 router = APIRouter(prefix='/clips', tags=['clips'])
 
@@ -85,8 +86,9 @@ async def upload_clip(
                 status_code=500,
                 detail=f"Could not upload clip to storage, try again"
             )
-    
-    clip = Clip(title=title, filename=safe_filename, duration=duration, owner_id=user_id)
+
+    vault = ger_or_create_default_vault(db, user_id)
+    clip = Clip(title=title, filename=safe_filename, duration=duration, owner_id=user_id, vault_id=vault.id)
     db.add(clip)
     db.commit()
     db.refresh(clip)

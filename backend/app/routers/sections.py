@@ -6,6 +6,7 @@ from app.config.database import get_db
 from app.models.video_clips import Section, Clip, SectionClip
 from app.schemas.video_clip import SectionCreate, SectionOut, AttachClipRequest
 from app.services.auth import require_current_user_id
+from app.services.vault_service import ger_or_create_default_vault
 
 router = APIRouter(prefix='/sections', tags=["sections"])
 
@@ -27,7 +28,8 @@ def create_section(
     db: Session = Depends(get_db),
     user_id: str = Depends(require_current_user_id)
 ):
-    section = Section(title=payload.title, type=payload.type, owner_id=user_id)
+    vault = ger_or_create_default_vault(db, user_id)
+    section = Section(title=payload.title, type=payload.type, owner_id=user_id, vault_id=vault.id)
     db.add(section)
     db.commit()
     db.refresh(section)
