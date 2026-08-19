@@ -13,6 +13,7 @@ class ClipOut(BaseModel):
     title: str
     filename: str
     duration: float
+    is_public: bool
 
 
 class SectionClipOut(BaseModel):
@@ -34,6 +35,7 @@ class SectionOut(BaseModel):
     id: IdStr
     title: str
     type: SectionType
+    is_public: bool
     clip_links: list[SectionClipOut] = []
 
 

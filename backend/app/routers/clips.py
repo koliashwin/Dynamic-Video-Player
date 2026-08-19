@@ -13,7 +13,7 @@ from app.schemas.video_clip import ClipOut
 from app.services.media_utils import get_video_duration, ensure_faststart
 from app.services.storage import upload_file, delete_file
 from app.services.auth import require_current_user_id
-from app.services.vault_service import ger_or_create_default_vault
+from app.services.vault_service import ger_or_create_default_vault, get_or_create_public_vault
 
 router = APIRouter(prefix='/clips', tags=['clips'])
 
@@ -145,3 +145,37 @@ def delete_clip(
     db.commit()
 
     return {'deleted': clip_id, 'unpublished_flows': unpublished}
+
+@router.post('/{clip_id}/make-public', response_model=ClipOut)
+def make_clip_public(
+    clip_id: int,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(require_current_user_id)
+):
+    clip = db.query(Clip).filter(Clip.id == clip_id, Clip.owner_id == user_id).first()
+    if not clip:
+        raise HTTPException(status_code=404, detail='Clip not found')
+
+    vault = get_or_create_public_vault(db, user_id)
+    clip.vault_id = vault.id
+    db.commit()
+    db.refresh(clip)
+
+    return clip
+
+@router.post('/{clip_id}/make-private', response_model=ClipOut)
+def make_clip_private(
+    clip_id: int,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(require_current_user_id)
+):
+    clip = db.query(Clip).filter(Clip.id == clip_id, Clip.owner_id == user_id).first()
+    if not clip:
+        raise HTTPException(status_code=404, detail="Clip not found")
+
+    vault = ger_or_create_default_vault(db, user_id)
+    clip.vault_id = vault.id
+    db.commit()
+    db.refresh(clip)
+
+    return clip

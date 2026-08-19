@@ -6,7 +6,7 @@ from app.config.database import get_db
 from app.models.video_clips import Section, Clip, SectionClip
 from app.schemas.video_clip import SectionCreate, SectionOut, AttachClipRequest
 from app.services.auth import require_current_user_id
-from app.services.vault_service import ger_or_create_default_vault
+from app.services.vault_service import ger_or_create_default_vault, user_can_access_vault, get_or_create_public_vault
 
 router = APIRouter(prefix='/sections', tags=["sections"])
 
@@ -45,21 +45,22 @@ def attach_clip(
 ):
     section = (
         db.query(Section)
-        .filter(Section.id == section_id, Section.owner_id == user_id)
+        .filter(Section.id == section_id)
         .first()
     )
 
-    if not section:
+    if not section or not user_can_access_vault(db, section.vault, user_id):
         raise HTTPException(status_code=404, detail='Section not found')
 
-    # check if the clip attached to the section is actually belong to
-    # same logged in user
+    # clip must be one this user can currently reference. their own,
+    # or anyone's public-vault clip. NOT ownership-restricted: the whole
+    # point of a public vault is reuse across owners.
     clip = (
         db.query(Clip)
-        .filter(Clip.id == payload.clip_id, Clip.owner_id == user_id)
+        .filter(Clip.id == payload.clip_id)
         .first()
     )
-    if not clip:
+    if not clip or not user_can_access_vault(db, clip.vault, user_id):
         raise HTTPException(status_code=404, detail='Clip not found')
 
     already_attached = (
@@ -165,3 +166,37 @@ def delete_section(
     db.commit()
 
     return {"deleted": section_id, "unpublished_flows": unpublished}
+
+@router.post('/{section_id}/make-public', response_model=SectionOut)
+def make_section_public(
+    section_id: int,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(require_current_user_id)
+):
+    section = db.query(Section).filter(Section.id == section_id, Section.owner_id == user_id).first()
+    if not section:
+        raise HTTPException(status_code=404, detail='Section not found')
+
+    vault = get_or_create_public_vault(db, user_id)
+    section.vault_id = vault.id
+    db.commit()
+    db.refresh(section)
+
+    return section
+
+@router.post('/{section_id}/make-private', response_model=SectionOut)
+def make_section_private(
+    section_id: int,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(require_current_user_id)
+):
+    section = db.query(Section).filter(Section.id == section_id, Section.owner_id == user_id).first()
+    if not section:
+        raise HTTPException(status_code=404, detail='Section not found')
+
+    vault = ger_or_create_default_vault(db, user_id)
+    section.vault_id = vault.id
+    db.commit()
+    db.refresh(section)
+
+    return section

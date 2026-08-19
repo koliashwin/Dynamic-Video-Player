@@ -4,6 +4,7 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 
 from app.config.database import Base
+from app.models.vaults import VaultType
 
 class SectionType(str, enum.Enum):
     single = 'single'
@@ -29,6 +30,10 @@ class Clip(Base):
         cascade='all, delete-orphan'
     )
 
+    @property
+    def is_public(self) -> bool:
+        return self.vault is not None and self.vault.type == VaultType.public
+
 class Section(Base):
     __tablename__ = 'sections'
     
@@ -51,6 +56,10 @@ class Section(Base):
         back_populates='section',
         cascade='all, delete-orphan'
     )
+
+    @property
+    def is_public(self) -> bool:
+        return self.vault is not None and self.vault.type == VaultType.public
 
 class SectionClip(Base):
     __tablename__ = "section_clips"

@@ -7,6 +7,7 @@ from app.models.video_clips import Flow, Section, FlowSection
 from app.schemas.video_clip import FlowCreate, FlowOut, AttachSectionRequest
 from app.services.video_service import get_flow_playability_error
 from app.services.auth import require_current_user_id
+from app.services.vault_service import user_can_access_vault
 
 router = APIRouter(prefix='/flows', tags=['flows'])
 
@@ -72,10 +73,10 @@ def attach_section(
     # by just guessing id
     section = (
         db.query(Section)
-        .filter(Section.id == payload.section_id, Section.owner_id == user_id)
+        .filter(Section.id == payload.section_id)
         .first()
     )
-    if not section:
+    if not section or not user_can_access_vault(db, section.vault, user_id):
         raise HTTPException(status_code=404, detail="Section not found")
 
     if not section.clip_links:
