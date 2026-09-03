@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.config.database import get_db
 from app.models.video_clips import Section, Clip, SectionClip
+from app.models.vaults import Vault, VaultType
 from app.schemas.video_clip import SectionCreate, SectionOut, AttachClipRequest
 from app.services.auth import require_current_user_id
 from app.services.vault_service import ger_or_create_default_vault, user_can_access_vault, get_or_create_public_vault
@@ -18,6 +19,16 @@ def list_sections(
     return (
         db.query(Section)
         .filter(Section.owner_id == user_id)
+        .order_by(Section.id)
+        .all()
+    )
+
+@router.get("/public", response_model=list[SectionOut])
+def list_public_sections(db: Session = Depends(get_db)):
+    return (
+        db.query(Section)
+        .join(Vault, Section.vault_id == Vault.id)
+        .filter(Vault.type == VaultType.public)
         .order_by(Section.id)
         .all()
     )

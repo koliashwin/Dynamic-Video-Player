@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config.database import get_db
 from app.models.video_clips import Clip
+from app.models.vaults import Vault, VaultType
 from app.schemas.video_clip import ClipOut
 from app.services.media_utils import get_video_duration, ensure_faststart
 from app.services.storage import upload_file, delete_file
@@ -33,6 +34,15 @@ def list_clips(
         .all()
     )
 
+@router.get("/public", response_model=list[ClipOut])
+def list_public_clips(db: Session = Depends(get_db)):
+    return (
+        db.query(Clip)
+        .join(Vault, Clip.vault_id == Vault.id)
+        .filter(Vault.type == VaultType.public)
+        .order_by(Clip.id)
+        .all()
+    )
 
 @router.post("/upload", response_model=ClipOut)
 async def upload_clip(
