@@ -7,6 +7,7 @@ import SectionPage from '../pages/SectionPage'
 import FlowPage from '../pages/FlowPage'
 import FeedPage from '../pages/FeedPage'
 import LandingPage from '../pages/LandingPage'
+import VaultBrowsePage from '../pages/VaultBrowsePage'
 
 const AppRouter = () => {
     return (
@@ -14,12 +15,14 @@ const AppRouter = () => {
             <Routes>
                 <Route path='/' element={<LandingPage />} />
                 <Route path='/feed' element={<FeedPage />} />
+                <Route path='/vault' element={<VaultBrowsePage/>} />
                 <Route path='/flow/:flowId' element={<VideoPage />} />
                 <Route path='/flow' element={<VideoPage />} />
                 <Route path='/config' element={<ConfigLayout />}>
                     <Route path='clips' element={<ClipPage />} />
                     <Route path='sections' element={<SectionPage />} />
                     <Route path='flows' element={<FlowPage />} />
+                    <Route path='vault' element={<VaultBrowsePage/>} />
                 </Route>
             </Routes>
         </BrowserRouter>

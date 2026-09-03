@@ -4,6 +4,8 @@ import { API_URL, apiRequest } from "./api";
 
 export const listClips = () => apiRequest('/clips')
 
+export const listPublicClips = () => apiRequest('/clips/public')
+
 export const uploadClip = async (title, file) => {
     const fromData = new FormData()
     fromData.append('title', title)
@@ -21,6 +23,8 @@ export const deleteClip = (clipId, force = false) =>
 // --- sections ---
 
 export const listSections = () => apiRequest('/sections')
+
+export const listPublicSections = () => apiRequest('/sections/public')
 
 export const createSection = (title, type) => 
     apiRequest('/sections', {

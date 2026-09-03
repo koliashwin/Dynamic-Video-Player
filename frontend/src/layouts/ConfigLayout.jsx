@@ -8,7 +8,8 @@ import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-reac
 const TABS = [
     { label: 'Clip Library', path: '/config/clips' },
     { label: 'Sections', path: '/config/sections' },
-    { label: 'Flows', path: '/config/flows' }
+    { label: 'Flows', path: '/config/flows' },
+    { label: 'Public Vault', path: '/config/vault'}
 ]
 
 const ConfigLayout = () => {
